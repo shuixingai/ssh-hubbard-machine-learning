@@ -1,0 +1,17 @@
+# pip 环境：qiskit 轨道（轨道② 特征图 / 轨道③ DQAP）+ ML 对决
+# -----------------------------------------------------------
+# 本文件是「轨道②③ 运行环境」的锁清单（你本机已验证的组合）。
+# 注意与 environment.yml（quspin，py3.9）互相独立、互不兼容
+# （quspin 需要 numpy≤2.3，而这里 numpy 2.5.1 —— 两环境分开用）。
+#
+# 用法：python -m pip install -r requirements-qiskit.txt
+#
+# 轨道①（经典 ML）所需的 scipy/scikit-learn/matplotlib 也在这里，
+# 但轨道① 依赖的 ssh_model.py（quspin）只能在 quspin_env 里跑。
+
+qiskit==2.1.2
+qiskit-aer==0.17.2
+numpy==2.5.1
+scipy==1.18.0
+scikit-learn==1.8.0
+matplotlib==3.10.5

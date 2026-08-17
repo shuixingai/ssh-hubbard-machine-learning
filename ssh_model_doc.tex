@@ -1,0 +1,100 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[UTF8]{ctex}
+\usepackage{amsmath, amssymb}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\geometry{margin=2.5cm}
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!5},
+}
+
+\title{SSH-Hubbard 模型精确对角化 — 使用说明}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+
+\section{参数含义}
+\begin{table}[h!]
+\centering
+\begin{tabular}{ccl}
+\toprule
+参数 & 默认值 & 含义 \\
+\midrule
+$L$   & 6 & 格点数（需偶数） \\
+$t_1$ & 1.0 & 奇数键跃迁（$0\text{--}1, 2\text{--}3, \dots$） \\
+$t_2$ & 0.8 & 偶数键跃迁（$1\text{--}2, 3\text{--}4, \dots$） \\
+$U$   & 2.0 & Hubbard 相互作用强度 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{用法}
+
+\subsection{单点计算}
+可同时输出基态能量、本征值谱和关联矩阵 $\langle c_i^\dagger c_j \rangle$：
+\begin{lstlisting}
+conda run -n [你的环境名] python "[脚本的绝对路径]" --L 6 --t1 1.0 --t2 0.8 --U 2.0 --spectrum --corr
+\end{lstlisting}
+
+\begin{itemize}[nosep]
+    \item 不带 \texttt{--spectrum}：只输出基态能量
+    \item 不带 \texttt{--corr}：不输出关联矩阵
+    \item 不指定 \texttt{--L --t1 --t2 --U}：使用默认值 $L=6,\ t_1=1.0,\ t_2=0.8,\ U=2.0$
+\end{itemize}
+
+\subsection{扫参生成数据集}
+\begin{lstlisting}
+conda run -n [你的环境名] python "[脚本的绝对路径]" --dataset
+\end{lstlisting}
+
+\begin{itemize}[nosep]
+    \item 扫描范围：$t_1/t_2 \in [0.5, 1.5]$（$11\times 11$ 网格），$U \in [0, 4]$（9 个点），共 1089 个参数点
+    \item 结果保存为 \texttt{C:\textbackslash Users\textbackslash 32493\textbackslash Desktop\textbackslash ssh\_dataset\_L6.npz}
+    \item 可用 \texttt{--n-t1}、\texttt{--n-t2}、\texttt{--n-U} 调整网格密度
+    \item 可用 \texttt{--save 路径.npz} 指定保存位置
+\end{itemize}
+
+\section{输出文件结构（\texttt{.npz}）}
+\renewcommand{\arraystretch}{1.2}
+\begin{table}[h!]
+\centering
+\begin{tabular}{ccl}
+\toprule
+键名 & 形状 & 说明 \\
+\midrule
+\texttt{t1\_arr}    & $(n_{t_1},)$ & $t_1$ 扫描值 \\
+\texttt{t2\_arr}    & $(n_{t_2},)$ & $t_2$ 扫描值 \\
+\texttt{U\_arr}     & $(n_{U},)$   & $U$ 扫描值 \\
+\texttt{energies}   & $(n_{t_1}, n_{t_2}, n_{U})$ & 基态能量 \\
+\texttt{spectra}    & $(n_{t_1}, n_{t_2}, n_{U}, 20)$ & 最低 20 个本征值 \\
+\texttt{corr\_matrices} & $(n_{t_1}, n_{t_2}, n_{U}, L, L)$ & 关联矩阵 $\langle c_i^\dagger c_j \rangle$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{注意事项}
+\begin{itemize}
+    \item 代码需要在 \textbf{quspin\_env} conda 环境中运行（已安装 QuSpin）
+    \item $L$ 增大时计算量快速增长：
+    \[
+    \begin{array}{c|c}
+    L & \text{Hilbert 空间维数} \\ \hline
+    6 & 400 \\
+    8 & 4\,900 \\
+    10 & 63\,504
+    \end{array}
+    \]
+\end{itemize}
+
+\end{document}

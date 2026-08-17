@@ -1,0 +1,18 @@
+# conda 环境：quspin 轨道（轨道① 经典 + 数据生成）
+# -----------------------------------------------
+# 本仓库的 Python 代码横跨两个不兼容的环境：
+#   A) quspin_env（conda，py3.9 系）—— 轨道① 经典特征 / ssh_model.py 数据生成
+#   B) requirements-qiskit.txt —— 轨道②③（qiskit / aer）与 ML 对决脚本
+#
+# 用法：conda env create -f environment.yml   （会自动从 conda-forge 拉 quspin）
+# 复现你已验证过的本机配置：python 3.9 + conda-forge 的 quspin。
+name: quspin_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - quspin
+  - numpy
+  - scipy
+  - scikit-learn
+  - matplotlib

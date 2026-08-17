@@ -1,0 +1,1197 @@
+arXiv:2504.07499v1 [quant-ph] 10 Apr 2025  Digital quantum simulation of the Su-Schrieffer-Heeger model using a parameterized quantum
+                                                                                                    circuit
+
+                                                                   Qing Xie,1 Kazuhiro Seki,1 Tomonori Shirakawa,1, 2, 3, 4 and Seiji Yunoki1, 2, 3, 5
+
+                                                1Quantum Computational Science Research Team, RIKEN Center for Quantum Computing (RQC), Saitama 351-0198, Japan
+                                              2Computational Materials Science Research Team, RIKEN Center for Computational Science (R-CCS), Hyogo 650-0047, Japan
+
+                                                                                         3Computational Condensed Matter Physics Laboratory,
+                                                                              RIKEN Cluster for Pioneering Research (CPR), Saitama 351-0198, Japan
+                                                   4RIKEN Interdisciplinary Theoretical and Mathematical Sciences Program (iTHEMS), Wako, Saitama 351-0198, Japan
+                                             5Computational Quantum Matter Research Team, RIKEN Center for Emergent Matter Science (CEMS), Saitama 351-0198, Japan
+
+                                                                                                              (Dated: April 11, 2025)
+
+                                                            We perform digital quantum simulations of the noninteracting Su­Schrieffer­Heeger (SSH) model using a
+                                                         parameterized quantum circuit. The circuit comprises two main components: the first prepares the initial state
+                                                         from the product state |0L, where L is the system size; the second consists of M layers of brick-wall unitaries
+                                                         simulating time evolution. The evolution times, encoded as the rotation angles of quantum gates in the sec-
+                                                         ond part, are optimized variationally to minimize the energy. The SSH model exhibits two distinct topological
+                                                         phases, depending on the relative strengths of inter- and intra-cell hopping amplitudes. We investigate the evo-
+                                                         lution of the energy, entanglement entropy, and mutual information towards topologically trivial and nontrivial
+                                                         ground states. Our results find the follows: (i) When the initial and target ground states belong to the same
+                                                         topological phase, the variational energy decreases exponentially, the entanglement entropy quickly saturates
+                                                         in a system-size-independent manner, and the mutual information remains spatially localized, as the number
+                                                         of layers increases. (ii) When the initial and target ground states belong to different topological phases, the
+                                                         variational energy decreases polynomially, the entanglement entropy initially grows logarithmically before de-
+                                                         creasing, and the mutual information spreads ballistically across the entire system, with increasing the number
+                                                         of layers. Furthermore, by calculating the polarization, we identify a topological phase transition occurring at
+                                                         an intermediate circuit layer when the initial and final target states lie in different topological characters. Finally,
+                                                         we experimentally confirm this topological phase transition in an 18-site system using 19 qubits on a trapped-ion
+                                                         quantum computer provided by Quantinuum.
+
+                                                                     I. INTRODUCTION                         accuracy of quantum computation. For example, ansatze that
+                                                                                                             respect (some of) the symmetries of the Hamiltonian [5, 40]
+                                              Simulating quantum many-body systems on classical hard-        or topological sectors [7, 41] can be lead to more efficient
+                                           ware is notoriously challenging due to the exponential growth     ground-state preparation of quantum many-body systems.
+                                           of the Hilbert space, rendering exact solutions computation-
+                                           ally intractable for large systems. This intrinsic complexity        In addition to the selection of ansatz, studying its funda-
+                                           highlights a compelling use for quantum computers and quan-       mental properties is equally important. One prominent chal-
+                                           tum algorithms, which exploit quantum mechanical principles       lenge is the phenomenon of barren plateaus [42], where gra-
+                                           to simulate quantum dynamics more efficiently than their clas-    dients in high-dimensional parameter spaces vanish exponen-
+                                           sical counterparts [1, 2]. In recent years, there has been grow-  tially with the circuit depth or system size, making opti-
+                                           ing interest in both analog and digital quantum simulations       mization exponentially difficult. A thorough investigation of
+                                           of quantum many-body systems using various quantum hard-          the discretized quantum adiabatic process (DQAP) ansatz for
+                                           ware platforms. These simulations aim to explore fundamen-        noninteracting fermions in one dimension has demonstrated
+                                           tal problems in physics, such as strongly correlated quantum      that an appropriate choice of classical optimization scheme
+                                           systems [3­12], lattice gauge theories [13­16], and topologi-     can alleviate these difficulties in this particular case, lead-
+                                           cal phases of matter [17­19]. The rapid advancement of noisy      ing to systematic convergence to the optimal variational pa-
+                                           intermediate-scale quantum (NISQ) devices [20­25], as intro-      rameters [43]. Similarly, an detailed study of a variational
+                                           duced by Preskill [26], has enabled several proof-of-principle    ansatz for an effective spin-1 chain has revealed a relation-
+                                           demonstrations of quantum supremacy or advantage [27­32],         ship between the ansatz's expressibility and the spin corre-
+                                           paving the way for simulating complex quantum phenomena           lation length in the symmetry-protected topological Haldane
+                                           beyond the capability of classical computers [33­36].             phase, showing that the accuracy of the ansatz is governed not
+                                                                                                             by the system size, but by the correlation length [7].
+                                              The development of quantum-classical hybrid algorithms
+                                           has been instrumental in advancing quantum computation in            This work investigates the fundamental properties of
+                                           the NISQ era. In particular, variational quantum algorithms       the DQAP ansatz [43] for preparing ground states of the
+                                           (VQAs), such as the variational quantum eigensolver [37, 38]      Su­Schrieffer­Heeger (SSH) model [44] at half filling, a
+                                           and the quantum approximate optimization algorithm [39],          paradigmatic system in the study of topological phase transi-
+                                           have found widespread applications in physics and chemistry.      tions [45]. Starting from a topologically trivial product state,
+                                           A central challenge in VQAs is the design of an effective vari-   the ansatz generates target states in either the topologically
+                                           ational ansatz, which critically affects both the efficiency and  trivial or nontrivial phase, depending on the model parame-
+                                                                                                             ters. Our numerical simulations show that topological char-
+                                                                                                                                   2
+
+acters of the initial and final target states lead to qualitative   FIG. 1. (a) A schematic representation of the 1D SSH model for
+differences in the evolution of the energy, entanglement en-        spinless fermions. A and B denote two sublattices within a unit cell.
+tropy, and mutual information, as summarized in Table I. The        v and w represent the intra-cell and inter-cell hopping amplitudes,
+topological nature of the DQAP ansatz is further characterized      respectively. (b) The phase diagram at half-filling. Two evolution-
+by calculating the polarization as a function of circuit depth.     ary paths are indicated by lines with arrows. Path I corresponds to
+Our results reveal that a topological phase transition occurs at    a case where both the initial and final states belong to the trivial
+a critical circuit depth, even before reaching the target ground    phase, while Path II represents a transition to a topologically nontriv-
+state. Finally, we validate our numerical findings using the        ial phase. The red dot marks the critical point studied in Ref. [43].
+20-qubit Quantinuum H1-1 trapped-ion device [46] to simu-
+late an 18-site SSH model. The high fidelity of long-range             To simulate a fermionic Hamiltonian on a quantum cir-
+two-qubit gates, enabled by the all-to-all connectivity archi-      cuit, the first step is to map it onto a qubit basis. Several
+tecture of the H1-1 system, makes it particularly well-suited       transformations can be employed for this purpose, includ-
+for this purpose.                                                   ing the Jordan-Wigner transformation [48], the Bravyi-Kitave
+                                                                    transformation [49], the Ball-Verstracete-Cirac transforma-
+   The remainder of this paper is organized as follows. In          tion [50, 51], and other recently developed methods [52­
+Sec. II, we define the SSH model and introduce the parameter-       56]. In this work, we adopt the Jordan-Wigner transforma-
+ized quantum circuit based on the DQAP ansatz. Section III          tion (JWT) [43, 48], which maps fermionic opertors to qubit
+presents numerical results on the variational ground-state en-      operators as follows:
+ergy, entanglement entropy, mutual information, and polariza-
+tion, characterizing the evolution process from the initial to fi-
+nal state under the DQAP ansatz. In Sec. IV, we demonstrate
+how a quantum computer is used to distinguish topologically
+distinct phases by computing the polarization. Finally, Sec. V
+summarizes our findings and provides concluding discussions.
+Additional numerical results, details of the quantum circuit
+implemented on hardware, and supplementary experimental
+results are provided in Appendices A, B, and C, respectively.
+
+II. MODEL AND METHOD                                                                          c^i = i-K^ , c^i = K^ +i ,           (2)
+
+   We consider the 1D SSH model on a ring with an even num-         where i±     =  1  (X^ i  ±    iY^i)  and  K^  =  exp[-i     j<i(Z^ j + 1)] is
+ber L of sites, as shown in Fig. 1(a). The Hamiltonian is given                     2                                         2
+by                                                                  a nonlocal string operator. Here, X^i, Y^i, Z^i denotes the Pauli
+
+                                                                    matrices acting on site i, with the sublattice index omitted for
+
+            L/2                                                     simplicity.
+
+H^ SSH = -       vc^A,ic^B,i + wc^B,ic^A,i+1 + H.c.,  (1)           For the 1D SSH model, which contains only nearest-
+
+            i=1                                                     neighbor hopping terms, the JWT yields the following map-
+
+                                                                    ping:
+
+where A and B denote the two sublattices within a unit cell,                           c^ic^i+1 + H.c.  +i -i+1 + H.c.             (3)
+c^A(B),i represents the creation operator for a spinless fermion
+at the ith unit cell on sublattice A (B), and v and w are the       for hopping terms that do not cross the boundary. For con-
+intra-cell and inter-cell hopping amplitudes, respectively. For     venience, let us introduce two sets of natural numbers, 4N =
+convenience, we refer to them as v-bands and w-bonds. The           {4n |n  N} and 4N + 2 = {4n + 2 |n  N}, where N is the set
+parameter  is introduced to account for different boundary          of natural numbers. For the hopping term across the bound-
+conditions. For hopping across the boundary, between the            ary, the string operator in the JWT becomes trivial when the
+first and the last sites, we set  = 1 for periodic bound-           system size satisfies L  4N for APBCs or L  4N + 2 for
+ary conditions (PBCs) and  = -1 for anti-periodic bound-            PBCs. This corresponds to a closed-shell condition, where a
+ary conditions (APBCs). For all other hoppings that do not          gap always persists at half filling, except at the critical point
+cross the boundary, we assume  = 1. In this paper, we con-          v = w. Thus, the SSH model can be exactly mapped onto the
+sider the system at half-filling, implying that the density of      following qubit model:
+spinless fermions is L/2. As shown in Fig. 1(b), it is well
+know [45] that the system exhibits a trivial insulating phase                                 L/2
+when v/w > 1. In contrast, for v/w < 1, the ground state is
+in a topological phase characterized by a nontrivial polariza-             H^ SSH = -              v+A,i-B,i + w+B,i-A,i+1 + H.c.  (4)
+tion [47] under PBCs or APBCs. Under open-boundary con-
+ditions, this phase supports two edge modes, which are pro-                                   i=1
+tected by chiral symmetry [44]. The critical point at v/w = 1
+has been previously studied in Ref. [43] using a parameterized      The total Hamiltonian can be decomposed into two groups,
+quantum circuit approach, which we also employ in this work.        each containing mutually commutable local Hamiltonian
+                                                                    terms, i.e.,
+
+                                                                                                   H^ SSH = H^ 1 + H^ 2,           (5)
+                                                                                                                                                                              3
+
+TABLE I. Summary of the behavior of four quantities­energy, entanglement entropy, mutual information, and polarization­during the DQAP
+evolution of the optimized DQAP ansatz |M(), depending on whether the initial and final states belong to the same or different topological
+phases. The corresponding figures are referenced in the last column. Note that the number of layers required to exactly represent the ground
+state of the final Hamiltonian is L/4 [(L - 2)/4], irrespective of the topological nature of the initial and final states, assuming that APBCs
+(PBCs) are applied with L  4N (L  4N + 2), and M is less than this number of layers.
+
+                   Initial and final states Same phase                          Different phases                                    Fig. 1
+
+                   Energy                    exponential decrease in M polynomial decrease in M                                     Fig. 3
+
+                   Entanglement entropy monotonic increase in M nonmonotonic dependence on M Fig. 4
+
+                   Mutual information spatially confined                        spatially spread with M                             Fig. 6
+
+                   Polarization              --                                 alternation at M                                    Figs. 7, 8, 10
+
+where
+
+                   L/2
+
+                   H^ 1 = - v+A,i-B,i + H.c.                  (6)
+
+                   i=1
+
+and                                                                             FIG. 2. Quantum circuit implementations for (a) the initial state
+
+                   L/2                                                          |t = 1 (|01 + |10) and (b) the unitary time evolution operator
+                                                                                           2
+
+              H^ 2 = - w+B,i-A,i+1 + H.c..                    (7)               exp[-i     (X^ i  X^  j  +  Y^iY^ j)].  In  the  circuits,  X^ ,   H^  denote  the  Pauli-X   and
+                                                                                        2
+
+                   i=1                                                          Hadamard gates, respectively, while the rotation gates are defined as
+
+                                                                                R^ x()  =  exp(-i           X^ )  and   R^ z ()  =  exp(-i     Z^  ).  The  Cnot  gates  are  rep-
+                                                                                                         2                                  2
+
+Each term in H^ i (i = 1, 2) involves interactions between only                 resented in the standard form.
+
+two neighboring qubits. The ground state of an individual
+
+term -(+i -i+1+H.c.) is simply given by |t =     1 (|01 + |10),                    Finally, we note that the DQAP ansatz in Eqs. (8-10) at
+                                                                                an intermediate step generally does not represent the ground
+                                                   2                            state of the instantaneous Hamiltonian [43] somewhere on the
+                                                                                straight line of a Path connecting the start and end points in
+which can be easily prepared from the product state |00 using                   Fig. 1 (b). Therefore, the straight lines connecting the start and
+                                                                                end points in Fig. 1 (b) should be understood as schematics.
+the circuit shown in Fig. 2(a). Therefore, the ground state
+
+of Hi (i = 1, 2) can be prepared by applying L/2 identical
+
+copies of this set of gates to neighboring qubits. We choose
+
+H^ i (i = 1, 2) as our initial Hamiltonian.
+
+Throughout this paper, we examine the unitary evolution
+
+from the ground state of H^ 1 to that of H^ SSH using the DQAP
+
+ansatz [43]:                                                                                                III. NUMERICAL RESULTS
+
+              1
+
+|M() =             U^ (1)(m(1), m(2))|(1)                                          In this section, we present numerical results obtained us-
+
+              m=M                                                               ing classical computers. The initial state is always set to the
+                                                                                ground state of H^ 1 with v = 1, which is equivalent to the
+       = U^ (1)((M1), (M2)) · · · U^ (1)(2(1), 1(2))U^ (1)(1(1), 1(2))|(1()8),  ground state of H^ SSH with (v, w) = (1, 0). We then vary
+                                                                                the parameters (v, w) in the final Hamiltonian H^ SSH, whose
+where                                                                           ground state is the target final state in the time evolution [see
+                                                                                Fig. 1(b)]. By appropriately tuning (v, w) in the final Hamilto-
+              U^ (1)(m(1), m(2)) = e e -im(1)H^ 1 -im(2)H^ 2  (9)
+                                                                                nian, we systematically investigate the two distinct cases: one
+and M represents the number of time steps with |(1) =
+|b1  |b2  · · ·  |bL/2 being the ground state of H^ 1. The vari-                where the time evolved state remains within the same topo-
+ational parameters {m(1), m(2)}mM=1 are optimized by minimizing
+the expectation value of the energy:                                            logically trivial phase, and another where it transforms into a
+
+                                                                                topologically nontrivial phase. The main results are summa-
+
+                                                                                rized in Table I.
+
+              EM() = M()|H^ SSH|M().                          (10)
+
+We employ the natural gradient descent method for optimiza-                                              A. Ground-state energy
+
+tion, where both the gradient and the metric tensor are effi-                      Figure 3 shows the energy difference, E = ELM(opt) -
+ciently calculated as described in Ref. [43]. Since H^ i (i = 1, 2)             Eexact(L), between the optimized variational ground-state en-
+                                                                                ergy ELM(opt) and the exact ground-state energy Eexact(L) for a
+consists of mutually commutative terms, the time evolution                      system size of L = 200. Here, ELM(opt) is computed using the
+of H^ i (i = 1, 2) can be efficiently parallelized. The time-                   DQAP ansatz |M() with the optimized variational param-
+evolution of the local term exp[-i(i+-i+1 + H.c.)] can be                       eters  = {m(1), m(2)}mM=1, which defines a quantum circuit with
+exactly implemented using the circuit shown in Fig. 2(b).
+ (a) 10-2               v = 1.0            v = 1.1            v = 3.0                                                                                4
+                        v = 1.05           v = 2.0            v = 4.0
+       10-4                                                                 reasonable since this parameter range is very close to the crit-
+E      10-6                                                                 ical point. Second, as v increases further, E exhibits a clear
+       10-8                                                                 exponential decay with respect to M. This implies that a shal-
+      10-10             w = 1.0            w = 1.2            w = 1.8       low circuit, containing fewer quantum gates than in the critical
+                        w = 1.1            w = 1.5            w = 2.0       case (v = 1), is sufficient to prepare the ground state with high
+ (b) 0.10                                                                   accuracy. This observation holds when the initial and final
+                                                                            states belong to the same phase and when a large spectrum
+        0.08                                                                gap persists. A similar conclusion is expected for cases where
+        0.06                                                                both the initial and final states reside in the non-trivial phase,
+        0.04                                                                as these cases can be mapped onto each other by a single-site
+        0.02                                                                translation. Third, as shown in Fig. 3(b), when the initial and
+        0.00 0                                                              final states belong to different topological phases, the minimal
+                                                                            number of layers required to exactly prepare the target ground
+                                                                            state is consistently M = L/4.
+
+ E                      E   10-2                                                            B. Entanglement entropy
+                            10-4
+                            10-6       10  20  M  30      40  50            In Fig. 4, we calculate the evolution of the entanglement
+                            10-8
+                           10-10
+
+                                    0
+
+                                                                            entropy, S A = -TrA ln A, for two different cases. Here,
+
+                                                                            A  =  Tr    |M  (opt)M  (opt)|  is  the  reduced  density  matrix
+
+                                                                                     A
+                                                                            of the optimized state |M(opt) for subsystem A. We con-
+                10  20                 30             40          50
+                           M                                                sider a half-system bipartition into contiguous subsystems A
+
+                                                                            and its complement A, placing the entanglement cuts on w-
+                                                                            bonds (i.e., bonds between unit cells). Details of the calcula-
+
+FIG. 3. The energy difference E as a function of circuit depth M            tion can be found in Ref. [43]. In Fig. 4(a), where both the
+for various parameters (v, w) in the final Hamiltonian. The system
+size is L = 200 under APBCs. (a) w is fixed at 1, while v is varied,        initial and final states belong to the trivial phase (Path I), we
+representing the case where both the initial and final states belong to     observe that S A saturates at approximately 0.355 after only
+                                                                            four layers. This indicates that in the gapped case, the two
+the trivial phase (case I). (b) v is fixed at 1, while w is varied, illus-
+trating the case where the initial and final states belong to different     halves of the system are weakly entangled, and a shallow cir-
+topological phases (case II). In (a), thin lines between the results for    cuit of depth M = 4 is sufficient to generate the necessary
+v = 1.0 and v = 1.05 indicate intermediate values from v = 1.01 to
+v = 1.04, while thin lines between v = 1.1 and v = 2 correspond to          quantum entanglement between subsystems A and A in the
+v = 1.2 to v = 1.9. The inset of (b) displays a semi-logarithmic plot.      target state.
+
+                                                                            In Fig. 4(b), where the initial and final states belong to dif-
+
+                                                                            ferent topological phases (Path II), the entanglement entropy
+
+a depth of M. The optimized variational parameters opt for                  S A exhibits a clearly nonmonotonic dependence on the num-
+different values of M are provided in Appendix A 3 (see also                ber M of circuit layers. We note that such nonmonotonic
+Figs. 13 and 14). In Fig. 3(a), w is fixed at 1, while v is varied
+form 1 to 4 in the final Hamiltonian. In contrast, in Fig. 3(b),            behavior was not observed clearly in the previous study at
+v is fixed at 1 and w is varied from 1 to 2. These choices                  the critical point v = w = 1 [43]. Upon closer examina-
+correspond to different time evolution scenarios: Fig. 3(a)
+represents an evolution where the system remains in the triv-               tion of its dependence on M, we find that S A initially in-
+ial phase (Path I), while Fig. 3(b) corresponds to a transition             creases, following a universal, system-size independent curve
+from the trivial to the topological phase (Path II). It is im-              for M < L/8. This behavior can be understood in terms of op-
+portant to note that at the critical point v = w = 1 in the fi-
+nal Hamiltonian, the exact ground state can be prepared when                erator spreading: two-qubit gates acting on the two boundaries
+M = L/4 for APBCs, as shown in Fig. 3, or M = (L - 2)/4
+for PBCs [43]. This result is consistent with the bound im-                 between A and A do not overlap in the DQAP ansatz as long
+posed by the information propagation speed in a quantum cir-                as M < L/8 [43]. Specifically, the entanglement between A
+cuit composed of local quantum gates [57]. The system size
+dependence of the energy is discussed in Appendix A 1.                      and A is first generated by two-qubit gates on the boundaries
+                                                                            at M = 1, and for M < L/8, the supports of these operators
+   In addition, we observe three notable features in Fig. 3.
+First, as shown in Fig 3(a), within the parameter range v                   remain non-overlapping, leading to a system-size independent
+[1.0, 1.1] in the final Hamiltonian, the number of layers re-
+quired to prepare the ground state with extremely high accu-                S A.
+racy (< 10-8) remains a quarter of the system size. This is                    To gain insights into the universal behavior of the entangle-
+
+                                                                            ment entropy S A for M = L/8, we fit the data obtained for
+                                                                            various system sizes L using the following form [58]:
+
+                                                                                            S~ A = a ln M + b,                         (11)
+
+                                                                            where a and b are fitting parameters. Figure 5 shows the fitting
+                                                                            results for the parameter sets (v, w) = (1.0, 1.0), (1.0, 1.1), and
+                                                                            (1.0, 2.0). We find that the entanglement entropy S A fits well
+(a) 0.40                                                                                                                                      5
+
+                      0.355                                                    4
+                                                                               3
+       0.35
+
+SA
+
+       0.30                                                                SA  2
+
+       0.25                          L = 40       L = 120      L = 200         1                  Logarithmic fit
+                                     L = 80       L = 160
+(b) 4                                                                                             w = 1.0
+
+           3                                                                                      w = 1.1
+
+                                     logarithmic scaling                                          w = 2.0
+
+                                                                               00  10  20  M  30  40               50
+
+SA  2                                                          1.643       FIG. 5. Logarithmic fitting (solid lines) of the entanglement en-
+                                                                           tropy S A for M = L/8 (circles), obtained using the optimzed DQAP
+                                     area-law                              ansatze |M() for various system sizes L. The fitting param-
+                                                                           eters (a, b) for the form S~ A = a ln M + b are (0.3709, 0.6942),
+    1                                                                      (0.8619, 0.2300), and (0.0612, 3.2880) for the parameter sets (v, w) =
+                                                                           (1.0, 1.0), (1.0, 1.1) and (1.0, 2.0), respectively.
+                                     L = 40       L = 160      L = 4M
+                                                                                                    C. Mutual information
+                                     L = 80       L = 200      L = 8M
+                                                                              To further examine the information spreading process under
+    00                               L = 120                               the DQAP ansatz, we compute the mutual information. The
+                                                                           mutual information between two parts of the system is defined
+                             10  20  M        30           40         50   as IA,B = S A + S B - S AB, which quantities the entanglement
+                                                                           between the two parts A and B of the system. Fixing the sys-
+FIG. 4. Entanglement entropy S A as a function of circuit depth M          tem size at L = 200, we define subsystem A as two sites at
+for various system sizes L under APBCs. (a) and (b) show the results       the 99th and 100th sites (i.e., the 50th unit cell, correspond-
+for the parameters (v, w) = (2.0, 1.0) and (1.0, 1.1) in the final Hamil-  ing to a v-bond), while subsystem B consists of a single site,
+tonian, respectively, corresponding to Path I and Path II in Fig. 1(a).    whose location is varied. Figure 6 shows the mutual informa-
+The variational parameters  in the DQAP ansatz |M() are opti-              tion for Path I and Path II. For Path I, the mutual information
+mized for each L and M. For comparison, the results for the case           remains spatially localized around the reference subsystem A
+where L and M are varied while maintaining L = 8M are also shown           throughout the entire evolution process. In contrast, for Path
+by a read line. Additionally, the entanglement entropy for the exact       II, the mutual information gradually spreads across the sys-
+                                                                           tem and extends throughout the whole system by the time
+ground state of the final Hamiltonian with the system size L is plotted    the circuit depth reaches M = L/8. It then remains spread
+at L = 4M using a magenta line.                                            across the entire system until M = L/4 - 1, just one layer be-
+                                                                           fore reaching the exact ground state of the target Hamiltonian
+to a logarithm form for larger M, even when the target ground              H^ SSH with (v, w) = (1, 2). Finally, at M = L/4, the mutual
+state is not at criticality.                                               information abruptly localized around the reference subsys-
+                                                                           tem A. This sudden change of mutual information at the final
+   At M = L/8, S A begins to deviate from the universal                    layer is compatible with the discontinuous behavior of the en-
+curve and, almost simultaneously, starts decreasing as M in-               tanglement entropy observed in Fig. 4(b). A further analysis
+creases. S A finally reaches the exact value of the final Hamil-           of the mutual information can be found in Appendix A 2.
+tonian H^ SSH at M = L/4, exhibiting a discontinuity. Notably,
+the system-size dependence of the exact values is insignifi-                                             D. Polarization
+cant, as indicated by the magenta line in Fig. 4(b). This im-
+plies that the entanglement entropy S A of the ground state at                Having observed the nontrivial information-spreading pro-
+(v, w) = (1.0, 1.1) follows the area-law scaling, in contrast              cess along Path II under the DQAP ansatz, a natural question
+to the critical case, where the entanglement entropy increases             arises: At what circuit depth M does the ansatz state |M()
+logarithmically with the subsystem size [59]. While the con-               undergo a topological transition? To address this, we compute
+vergence of S A to the exact value at M = L/4 is expected, the
+observed clear discontinuity as a function of circuit depth M
+was not found in the previous study for the critical case [43].
+These finding suggests a nontrivial information spreading pro-
+cess during the unitary evolution from the trivial to the topo-
+logical phase under the DQAP ansatz.
+                                                                                                            6
+
+(a) 50                                                                               L = 40
+
+      40                                                                             L = 80
+
+      30                                                                             L = 120
+
+                                                                                     L = 160
+
+                                                                                     L = 200
+
+M                                                                              PR
+
+   20
+
+M     10                                                                             0
+
+       0                                                                              0.00 0.05 0.10 0.15 0.20 0.25
+                                                                                                                 M/L
+(b) 50
+                                                                               FIG. 7. The polarization difference PR(M) as a function of the cir-
+      40                                                                       cuit depth M for various system sizes L. The variational parameters
+                                                                                in the DQAP ansatz |M() are optimized for each M and L. The
+      30                                                                       parameters in the final Hamiltonian are set to (v, w) = (1.0, 1.1), cor-
+                                                                               responding to Path II in Fig. 1(b).
+      20
+
+   10                                                                          belonging to sublattice A (B) of the jth unit cell. The last
+
+          min            max                                                   equality in Eq. (13) holds because fermion density operators
+
+   01                50               100      150  200                        commute with each other.
+                                   site in B
+                                                                                  The polarization PR(M) depends on the choice of the origin
+                                                                               for the "position" l in front of c^l c^l in Eq. (13). However, the
+                                                                               difference
+
+FIG. 6. Intensity plot of the mutual information IA,B for the optimized              PR(M) = PR(M) - PR(0)  (14)
+DQAP ansatz |M(), shown as a function of the circuit depth M
+and the location of the single site composing subsystem B. (a) and             allows for an unambiguous detection of the topological phase
+(b) correspond to the cases with the parameters (v, w) = (2, 1) and
+(1, 2) in the final Hamiltonian, respectively, representing Path I and         transition during the DQAP evolution. Figure 7 shows the
+Path II in Fig. 1(a). The system size is set to L = 200 under APBCs
+and the DQAP ansatz |M() is optimized for each M. Subsystem                    calculated polarization as a function of the circuit depth M
+A consists of two sites locating at the center of the system. White
+                                                                               for various system sizes L  4N along Path II. As expected,
+color in the intensity plots represent zero.                                   the polarization takes different values in the initial (M = 0)
+                                                                               and final (M = L/4) states, indicating the occurrence of a
+the polarization defined as [47, 60]                                           topological phase transition during the DQAP evolution.
+
+                                                                                  Interestingly, the critical circuit depth M at which PR(M)
+                                                                               changes,
+
+          PR(M) = Im lnM(opt)|U^ R|M(opt),                               (12)        PR(M) - PR(M - 1) 0,   (15)
+
+where the unitary operator U^ R is defined as                                  does not generally coincide with the final step. This suggests
+
+                  2i    L/2        j- 1                                        that the topological phase transition occurs during the DQAP
+                 (L/2)  j=1            2
+U^ R  =   exp                             c^A, jc^A, j + jc^B, jc^B, j         evolution, before reaching the exact ground state of the final
+                                                                               Hamiltonian. Figure 8 shows M as a function of the the sys-
+      =   exp    2i   L                                                        tem size L for two different parameter sets, (v, w) = (1, 1.1)
+                  L  l=1  lc^lc^l                                              and (1, 2), in the final Hamiltonian. We observe that M ex-
+
+            L        2i   lc^lc^l  .                                     (13)  hibits a staircase-like increase with L. Although it is not con-
+                      L                                                        clusive, our numerical results suggest that the critical M sat-
+      = exp                                                                    isfies L/8  M  L/4 for L  4N and (L - 2)/8  M 
+                                                                               (L - 2)/4 for L  4N + 2, where the lower bound corresponds
+          l=1
+                                                                               to the circuit depth at which the causal cone spans the en-
+Here, l represents the site index, serving as a one-dimensional
+label that runs over both unit-cell and sublattice indexes j, A,               tire system [see Fig. 6(b) and Ref. [43]]. Remarkably, if the
+and B. Specifically, we define l = 2 j - 1 (l = 2 j) for sites
+                                                                               topological phase transition occurs before the final step, no
+
+                                                                               discontinuities in ground-state energy, entanglement entropy,
+                                                                               or mutual information are observed at M = M.
+                                                                                                                                                      7
+
+       50                                                                      TABLE II. The optimized variational parameters opt = {m(1), m(2)}mM=1
+                                                                               obtained from classical simulations for L = 18 under PBCs, which
+                       w = 1.1                                                 are subsequently used for the experiments.
+                       w = 2.0
+
+       40
+
+                                                                                       M=1                M=2           M=3                M=4
+
+       30                                                                      1(1) 0.7853981636 1.2494387001 1.3583873392 1.4379338692
+                                                                               1(2) 0.2767871793 0.2688075377 0.2534789267 0.5229341500
+M                                                                              2(1)
+                                                                                             ­      0.6392420907 1.1586546608 1.4498686393
+       20
+                                                                               2(2)          ­      0.4831535535 0.5146221144 0.7033476173
+
+                                                                               3(1)          ­               ­  0.5714210664 1.4215754149
+
+       10                                                                      3(2)          ­               ­  0.5376954104 0.7169480772
+
+                                                                               4(1)          ­               ­          ­             1.0837464017
+
+       00                                                                      4(2)          ­               ­          ­             0.6676928002
+
+                    50          100                       150  200
+                                   L
+                                                                               mization process between quantum and classical computers.
+FIG. 8. The critical circuit depth M as a function of the system                  The polarization given in Eq. (12) can be reformulated for
+
+size L. The parameters of the final Hamiltonian are set to (v, w) =            quantum computation as
+(1.0, 1.1) and (1.0, 2.0). APBCs are imposed for L  4N, while PBCs
+are used for L  4N + 2. The shaded region indicates L/8  M                                             PR(M) = arctan   y                         (16)
+L/4.                                                                                                                    x
+
+                                                                               with
+
+   IV. EXPERIMENTS ON QUANTUM HARDWARE                                                          x = ReM(opt)|U^ R|M(opt),                         (17)
+
+                                                                                                y = ImM(opt)|U^ R|M(opt).                         (18)
+
+Exploring topological phase transitions poses a significant
+
+challenge for near-term noisy quantum devices, as topological                  We evaluate x and y separately on a quantum computer
+
+order parameters are inherently nonlocal, as seen in Eq. (13).                 using the Hadamard test. The uncertainty in the polar-
+
+Nevertheless, a seminal study [19] successfully demonstrated                   ization, arising from the measurement of these quantities,
+                                                                               is estimated using the error propagation formula: PR =
+a topological phase transition in a spin chain by evaluating
+
+topological order parameters using IBM's superconducting                       PR      x  2  +  PR  y  2  =       xy 2  x2  +  y2     , where x and
+                                                                                x                y              x2 +y2  x2     y2
+quantum computers. Here, in this work, we employ Quantin-
+
+uum's trapped-ion quantum computer to evaluate the polar-                      y are the standard errors in the measurement of x and y, re-
+
+ization PR as a topological order parameter. We further detail                 spectively.
+
+how the abrupt change in polarization can be detected with a                   Figure 9 illustrates the quantum circuit to evaluate the real
+
+real quantum device.                                                           part x. First, the state |M(opt) is prepared by applying M
+
+The experiments were conducted in January 2024 using the                       layers of the DQAP ansatz unitary        1    U^ (1)(m(1),  m(2))  to  the
+                                                                                                                        m=M
+H1-1 system by Quantinuum [46]. At the time of the exper-                      initial state |(1), which is a product of |t and corresponds to
+
+iments, the H1-1 system consisted of 20 qubits and natively                    the ground state of H^ 1. Second, the controlled-U^ R operation
+
+supported single-qubit rotation gates and two-qubit ZZ phase                   is implemented as follows:
+
+gates  defined  as  ZZPhase()   =  e-  1  iZ^i  Z^  j  ,  parametrized  by  a
+                                       2
+
+real angle . These native two-qubit native gates could be                                                          L        2l     ,
+                                                                                                                             L
+applied between an arbitrary pair of qubits. The average infi-                                  C0-U^ R = C0-Phasel                               (19)
+
+delity of single-qubit and two-qubit gates was about 0.004%                                                       l=1
+
+and 0.2%, respectively, while state preparation and measure-                   where C0-U^ R represents the unitary operation of U^ R on the
+
+ment errors averaged 0.3%. Further details on the hardware                     system qubits (1st to Lth registers) controlled by an ancillary
+
+specifications can be found in Ref. [46]. All quantum circuits                 qubit (0th register). The controlled-phase gate C0-Phasel() =
+                                                                               diag(1, 1, 1, ei) acts with a control on the 0th qubit and a target
+used in the experiments were compiled using TKET [61].
+
+We consider the 1D SSH model of L = 18 sites under PBCs,                       on the lth qubit. Since C0-Phasel  2l       for l = L is the iden-
+                                                                                                                   L
+setting the parameters (v, w) = (1, 2) in the final target Hamil-
+                                                                               tity operation, the implementation of C0-U^ R requires L - 1
+tonian. Every single site is mapped to a single qubit via the
+
+JWT, as described in Sec. II. Additionally, we introduce an an-                controlled-phase gates. Finally, the real part x is obtained by
+
+cillary qubit for the Hadamard test, bringing the total number                 measuring the expectation value of the Pauli X operator on the
+
+of qubits used to L + 1 = 19. The number of circuit layers is                  ancillary qubit. Similarly, the imaginary part y is determined
+
+varied within the range 0  M  4 = (L - 2)/4. To optimize                       using the same quantum circuit, except that the ancillary qubit
+
+quantum resource utilization, the optimal variational parame-                  is measured in the Pauli Y basis instead of X. Notice that these
+
+ters opt are pre-determined through classical simulations (see                 quantum circuits are further compiled for the H1-1 system for
+
+Table II), allowing us to bypass the iterative parameter opti-                 execution. The number of native two-qubit gates required on
+                                                                                                                                1.0 (a)                                               8
+                                                                                                                                0.5
+                                                                                                                                                           M=4
+
+                                                                                                                imaginary part y0.0
+                                                                                                                  R(M)                                     M=3
+                                                                                                                                                          M=2
+
+                                                                                                                                0.5                        M=1
+
+                                                                                                                                          H1-1
+
+FIG. 9. The quantum circuit to evaluate the real part x =                                                                       1.01.0    Noiseless M = 0
+ReM(opt)|U^ R|M(opt) for L = 18 under PBCs. The topmost
+
+qubit represents the ancillary qubit used for the Hadamard test, while                                                                    0.5 0.0                 0.5  1.0
+
+the remaining 18 qubits correspond to the system qubits, on which                                                                                    real part x
+
+the DQAP state |M(opt) is prepared. The leftmost part of the cir-
+
+cuit, consisting of qubit initialization, Hadamard gates, Pauli X gates,                                                             (b)
+
+and CNOT gates, construct the initial state |(1), which represents
+the ground state of H^ 1. The section inside the dashed box repre-
+                                                         1    U^ (1)(m(1),      m(2)),
+sents the DQAP ansatz unitary,                           m=M                                 with  the  opti-
+
+mized variational parameters determined from classical simulations
+
+(see Table. II). Blue and red rounded rectangles denote the two-qubit
+
+gates  exp[-i  m(1) v  (X^ i  X^  j  +  Y^iY^  j)]  and  exp[-i  m(2) w  (X^ i  X^  j  +  Y^iY^  j)],  respec-
+                 2                                                 2
+
+tively. The sequence of controlled-phase gates corresponds to the                                                                         H1-1
+                                                                                                                                          Noiseless
+C0-U^ R operation in Eq. (19). Notice that the controlled-phase gate
+
+C0-Phasel(2l/L) for l = L (light gray) is the identity operation and
+
+is therefore omitted from the circuit.
+
+the H1-1 system for various circuit depth M are 26, 62, 98,                                                                     0
+134, and 170 for M = 0, 1, 2, 3, and 4, respectively (see Ap-
+pendix B).
+
+Figure 10(a) shows the experimentally evaluated results for                                                                          0       1          2         3    4
+
+x and y, as defined in Eqs. (17) and (18), for M = 0, 1, 2, 3,                                                                                          M
+
+and 4 using the H1-1 system. Each value of x and y was es-
+
+timated with 500 measurements for M = 0, 1, 2, 4 and 2000
+
+measurements for M = 3 to ensure a sufficiently small uncer-                                                    FIG. 10. (a) Real and imaginary parts of M(opt)|U^ R|M(opt)
+                                                                                                                for M = 0 to 4 (from bottom to top). Circular and straight lines are
+tainty PR. The larger number of measurements for M = 3                                                          guide to the eyes. (b) Polarization difference PR(M) as a function of
+                                                                                                                circuit depth M. Red squares represent the experimental results ob-
+was necessary because both x and y are closer to zero, leading
+                                                                                                                tained using the H1-1 system, while blue circles denote the noiseless
+to a larger uncertainty in the polarization, which is nothing but
+                                                                                                                simulation results. Dashed horizontal lines are guide to the eyes. The
+the argument of the complex number x + iy. If the number of                                                     parameters of the final target Hamiltonian are set to (v, w) = (1, 2),
+                                                                                                                corresponding to Path II in Fig. 1(b).
+measurements were set to a similar value, this would results in
+
+an increased statistical uncertainty [see also the expression for
+
+PR immediately after Eq. (18)]. In general, a greater num-
+
+ber of measurements is required in the vicinity of the topo-
+
+logical phase transition to maintain a given level of precision.
+
+Conversely, if the number of measurements remains fixed, an                                                     the results shift to the positive side of the y-axis, indicating
+
+increase in the uncertainty PR(M) can serve as an indica-                                                       that PR(M) = arctan       y          .
+tor of the topological phase transition, i.e., at M  M. For                                                                               x       2
+
+comparison, we also include noiseless simulation results ob-                                                    Figure 10(b) shows the polarization difference PR(M),
+
+                                                                                                                evaluated using the values of x and y shown in Fig. 10. Despite
+
+tained from the H1-1E emulator provided by Quantinuum, us-                                                      being obtained without any error mitigation, the experimental
+
+ing the same number of measurements. The experimental re-                                                       results show good quantitative agreement with the noiseless
+
+sults show qualitative agreement with these noiseless simula-                                                   simulations. Specifically, the polarization at M = 4 is clearly
+
+tions. For M  3, the results lie along the negative side of the                                                 distinct from those at M  3. The robustness of these results
+
+y-axis, implying that PR(M) = arctan                             y              -         .  For   M    =  4,   against noise can be attributed to the behavior observed in
+                                                                 x                     2
+                                                                                                                             9
+
+Fig. 10: a small perturbation in x and y does not affect the sign    from MEXT, Japan. Additionally, we appreciate the support
+                                                                     provided by the UTokyo Quantum Initiative, the RIKEN TRIP
+of arctan  y  . In particular, the substantial change in the polar-  initiative (RIKEN Quantum), and the COE research grant in
+           x                                                         computational science from Hyogo Prefecture and Kobe City
+                                                                     through the Foundation for Computational Science. The nu-
+ization PR(M) primarily arises the sign change in y (see also        merical simulations have been performed using the HOKU-
+                                                                     SAI BigWaterfall system at RIKEN (Project IDs: Q23604).
+additional experimental results in Appendix C). These find-
+                                                                                   Appendix A: Additional numerical results
+ings confirm that our optimized variational state |M(opt)
+successfully captures the transition between topologically dis-
+
+tinct ground states of the SSH model as the circuit depth M
+
+increases, even in the presence of noise in a real quantum de-
+
+vice.
+
+                           V. CONCLUSIONS                               In this Appendix, we present additional numerical results
+                                                                     for the DQAP ansatz applied to the 1D SSH model.
+   We have applied the DQAP ansatz to obtain the ground
+state of the 1D SSH model of spinless fermions at half fill-                     1. Energy per site
+ing, considering various topological phases to which the ini-
+tial and final states belong. We have found that, irrespective          For the 1D SSH model of spinless fermions at half filling,
+of the topological nature of the initial and final states, the       the ground-state energy per site  in the thermodynamic limit
+circuit depth M required to exactly prepare the target final         is given by
+ground state is L/4 for L  4N under APBCs and (L - 2)/4
+for L  4N + 2 under PBCs. This is the same circuit depth                      =  (v + w)     , 4vw      ,  (A1)
+necessary to obtain the exact ground state at the critical point                     E2     2 (v + w)2
+when starting from a topologically trivial phase [43]. On the
+other hand, we have also identified qualitatively distinct be-       where
+haviors in the ground-state energy, entanglement entropy, and
+mutual information during the DQAP evolution, depending on                                
+the topological nature of the initial and final states, as summa-
+rized in Table I. One important finding is that as long as the              E2(, m) =       1 - m sin2 d   (A2)
+initial and final states belong to the same phase, only a few
+layers are sufficient to obtain the target ground state with high                      0
+accuracy. Additionally, we have numerically computed the
+polarization as an indicator to distinguish topologically differ-    denotes the incomplete elliptic integral of the second kind.
+ent phases during the DQAP evolution.                                Figure 11 shows the energy difference per site,  =
+                                                                     ELM(opt)/L - , between the variational ground state and the
+   We have also demonstrated that the topological phase tran-        exact ground state in the thermodynamic limit. Here, ELM(opt)
+sition during the DQAP evolution for the 18-site system can          is the variational energy obtained using the DQAP ansatz
+be detected by using a trapped-ion quantum computer. The             with the optimized variational parameters opt = {m(1), m(2)}mM=1,
+all-to-all connectivity of the trapped-ion quantum computer          consisting of M layers, for a system size L. We find that when
+provided by Quantinuum enables direct evaluation of the po-          M < L/4,  remains independent of the system size L. This
+larization, which is derived from the expectation value of a
+global unitary operator U^ R, without introducing additional         behavior arises because quantum entanglement in a quantum
+SWAP operations. This capability allows us to effectively
+characterize the phases experimentally to which the DQAP             circuit composed of local two-qubit gates propagates within
+state belongs. The present results lay the foundation for the
+next crucial step­exploring topological phases in interacting        a causality-cone-like structure during time evolution. As a
+systems [62, 63] using quantum computers­which we leave
+for future work.                                                     result, the quantum gates that contribute to the energy expec-
+
+                                                                     tation value are confined within this causality cone, making
+                                                                      unaffected by the system size. A detailed analysis of this
+                                                                     effect can be found in Refs. [43] and [64].
+
+                                                                     2. Mutual information for a DQAP ansatz with a fixed M
+
+                    VI. ACHNOWLEDGEMENT                                 It is also insightful to examine how the mutual information
+
+   A part of this work is based on results obtained from             IA,B evolves as the number m ( M) of layers increases in
+project JPNP20017, subsidized by the New Energy and Indus-           the DQAP ansatz |M(), where the variational parameters
+trial Technology Development Organization (NEDO). This                = {m(1), m(2)}mM=1 are optimized for a given M. Figure 12
+study is also supported by JSPS KAKENHI Grants No.                   shows the representative results for the mutual information
+JP21H04446, No. JP22K03479, and No. JP22K03520. We                   IA,B in a system of size L = 200, where subsystem A con-
+further acknowledge funding from JST COI-NEXT (Grant                 sists of two sites located at the center (i.e., at the 99th and
+No. JPMJPF2221) and the Program for Promoting Research
+of the Supercomputer Fugaku (Grant No. MXP1020230411)                100th sites), while subsystem B contains a single site whose
+
+                                                                     position is varied (see Sec. III C and Fig. 6). Note that the vari-
+                                                                     ational parameters in the DQAP ansatz |M() are optimized
+                                                                     for M = 49 in Fig. 12(a), which is one layer short of reaching
+                                                                                                                                          10
+
+  0.05                                                                  L = 40           L = 160  (a) 49
+  0.04                                                                  L = 80           L = 200
+  0.03                                                                  L = 120          L = 4M         40
+  0.02
+  0.01                                        10-1                                                      30
+  0.00
+-0.01 0                                       10-3                                                      20
+
+                                              10-5                                                      10
+                                          ||
+                                              10-7                                                       0m
+
+                                              10-9           10  20  M  30  40   50               (b) 50
+                                                      0
+                                                                                                        40
+         10                                              20      M      30           40  50
+                                                                                                        30
+FIG. 11. The energy difference per site,  = ELM(opt)/L - , for                                    m
+various system sizes L, where  = limL Eexact(L)/L and Eexact(L)                                         20
+is the exact ground-state energy for a system size L. The param-
+eters in the final Hamiltonian are set to (v, w) = (1, 1.1), and L
+is chosen as L  4N under APBCs. The magenta line represents
+A = Eexact(L)/L -  with L = 4M. The inset shows a semi-
+logarithmic plot.
+
+the exact ground state, and for M = 50 in Fig. 12(b), corre-                                         10
+sponding to the exact ground state of the final target Hamil-
+tonian with (v, w) = 1, 2, which follows Path II in Fig. 1(b).                                              min      max
+As shown in Fig. 12, in both cases, the entanglement grad-
+ually expands in space as the number m of layers increases,                                          01          50       100        150  200
+forming a causal cone that defines the maximum propagation                                                                site in B
+speed of information with local two-qubit gates, until it spans
+the entire system at m = L/8. However, beyond this point,                                         FIG. 12. Intensity plot of the mutual information IA,B for the op-
+the behavior of entanglement evolution differs: for M = 49,                                       timized DQAP ansatz |M() with (a) M = 49 and (b) M = 50,
+the entanglement remains extended across the whole system,                                        shown as a function of the circuit depth m and the location of the
+while for M = 50, as the number m of layers further increases,
+the entanglement gradually contracts, becoming more local-                                        single site composing subsystem B. Here, the system size is set to
+ized around the center of the system.                                                             L = 200 under APBCs and subsystem A consists of two sites lo-
+
+                3. Optimized variational parameters                                               cated at the center of the system, i.e., at the 99th and 100th sites (see
+
+   Figures 13 and 14 summarize the optimized parameters opt                                       Sec. III C and Fig. 6). The parameters of the final target Hamilto-
+in the DQAP ansatz |M() with  = {m(1), m(2)}mM=1 for the                                          nian are set to (v, w) = (1, 2), corresponding to Path II in Fig. 1(b).
+target final Hamiltonian with (v, w) = (1, 1.1) and (1.1, 1), re-
+spectively. These correspond to Path II (where the initial and                                    For each circuit depth m, only the first m values of the optimized
+final states belong to different topological phases) and Path I                                   variational parameters {m(1), m(2)}mM=1 are used to compute the mutual
+(where both the initial and final states belong to the same topo-                                 information. In contrast, in Fig. 6, the variational parameters are op-
+logically trivial phase) in Fig. 1(b). Figures 13(a) and 13(b)
+[Figures 14(a) and 14(b)] show the optimized parameters for                                       timized for each M. White color in the intensity plots represent zero.
+the case of Path II (Path I), where the system size L ( 4N)
+is varied with M = L/4. Therefore, the optimized DQAP                                             system size L1 are exactly the same as those for a system
+ansatz |M() represents the exact ground state of the target                                       size L2, as long as 4M < L1, L2, assuming that L1, L2  4N
+final Hamiltonian. We observe that these optimized parame-                                        under APBCs. This behavior arises because the variational
+ters vary smoothly as L increases.                                                                parameters  in the DQAP ansatz |M() are optimized to
+                                                                                                  minimize the expectation value of energy for the target fi-
+   Figures 13(c) and 13(d) [Figures 14(c) and 14(d)] show the                                     nal Hamiltonian, and the causality cone relevant to this en-
+optimized parameters for the case of Path II (Path I) with                                        ergy expectation value does not extend across the entire sys-
+M < L/4, where the optimized parameters in the DQAP                                               tem as long as M < L/4 [43]. As shown in these figures,
+ansatz |M() for each M are independent of the system size                                         we also observe that the optimized parameters vary smoothly
+L. Specifically, the optimized parameters {m(1), m(2)}mM=1 for a                                  with increasing M, which are clearly different from those in
+                                                                                                  Figures 13(a) and 13(b) [Figures 14(a) and 14(b)]. Conse-
+                                                                                                  quently, when the system size L is fixed and M is varied,
+                                                                                                  discontinuous changes appear in the optimized parameters at
+                                                                                                  M = L/4 and M = L/4 - 1, as indicated in read and blue in
+                                                                                                  Figs. 13(e) and 13(f) for the case of Path II and in Figs. 14(e)
+                                                                                                                                                                                11
+
+and 14(f) for the case of Path I, although these discontinuities                                         The experiments were conducted in March 2025. At the
+are less pronounced in the latter. This discontinuity is con-
+sistent with the abrupt changes observed in the ground-state                                             time of the experiments, the Reimei system consisted of 20
+energy [Fig. 3(b)], entanglement entropy [Fig. 4(b)], and mu-
+tual information [Fig. 6(b)].                                                                            qubits and natively supported single-qubit rotation gates and
+
+                                                                                                         two-qubit  ZZ  phase  gates,   defined  as  ZZPhase()        =  e-  1  iZ^iZ^ j  ,
+                                                                                                                                                                             2
+
+                                                                                                         where  is a real-valued parameter. These native two-qubit
+
+                                                                                                         gates could be applied to arbitrary pairs of qubits. The aver-
+
+                                                                                                         age infidelity of single-qubit and two-qubit gates was approx-
+
+        Appendix B: Number of native two-qubit gates                                                     imately 0.007% and 0.14%, respectively, while the average
+
+                                                                                                         state preparation and measurement (SPAM) error was around
+
+                                                                                                         0.35%. Further details on the hardware specifications can be
+
+   In this Appendix, we count the number of native two-qubit                                             found in Ref. [65]. All quantum circuits used in the experi-
+gates in the H1-1 system used for the quantum circuit shown
+in Fig. 9, assuming that L is even. The number of two-qubit                                              ments were compiled using TKET [61].
+gates is more significant than the number of single-qubit gates,
+as their infidelity is currently about two orders of magnitude                                           Figure 15 shows the energy per site evaluated using the
+larger than that of single-qubit gates. Thus, optimizing two-
+qubit gate usage is crucial for improving overall circuit fi-                                            Reimei system. The model parameters are the same as those
+delity.
+                                                                                                         used in the Fig. 10. Under the JWT, the hopping term between
+
+                                                                                                         sites l and l + 1 is expressed as
+
+                                                                                                                    c^l c^l+1  +  H.c.  =  1  X^lX^l+1 + Y^lY^l+1  .            (C1)
+                                                                                                                                           2
+The native two-qubit gate of the H1-1 system is the
+
+ZZPhase    gate,  ZZPhase()    =  e-  1  iZ^i  Z^  j  .  For    convenience,                         we  To evaluate the expectation values of X^lX^l+1 and Y^lY^l+1 for
+                                      2                                                                  l = 1, 2, · · · , L, we perform measurements of all qubits in
+
+introduce  the  ISWAP  gate,   ISWAP()                   =  e-  1  i(X^ i  X^  j  +Y^i  Y^  j  )  ,  as  the X and Y basis, respectively, with respect to the optimized
+                                                                4                                        DQAP ansatz state |M(). As in Appendix B, the number
+                                                                                                         of ZZPhase gates required to prepare the state |M) is given
+defined in TKET [61]. When it is compiled for the H1-1 sys-                                              by
+
+tem, a single ISWAP gate is decomposed into two ZZPhase
+
+gates, supplemented with appropriate single-qubit rotation
+
+gates.
+
+   First, L/2 ZZPhase gates are required to implement the ini-                                                                 NZ ZPhase   =  2ML    +  L,                      (C2)
+tial state |(1) in Eq. (8), since a single CNOT gate is equiv-                                                                                          2
+alent to a single ZZPhase(1/2) gate, up to single-qubit ro-
+                                                                                                         where the first term accounts for the number of ZZPhase gates
+tations. Second, 2ML ZZPhase gates are needed to imple-
+                                                                                                         in the M-layer DQAP ansatz unitary, and the second term ac-
+ment the M-layer DQAP ansatz unitary. This is because the                                                counts for those required for preparing the initial state |(1).
+                                                                                                         The difference NZZPhase - NZ ZPhase = L - 1 corresponds to
+DQAP ansatz unitary consists of ML ISWAP gates arranged                                                  the number of controlled-phase gates used in the Hadamard-
+in a brick-wall manner (see Fig. 9). Third, L-1 ZZPhase gates
+are required to implement the unitary C0-U^ R in Eq. (19), as a                                          test circuit for polarization calculations. For the system size
+single controlled-phase gate is equivalent to a single ZZPhase                                           L = 18, we find that NZ ZPhase = 9, 45, 81, 117, and 153 for
+                                                                                                         M = 0, 1, 2, 3, and 4, respectively. The energy per site is
+gate, up to single-qubit rotations. Thus, the total number of                                            then evaluated accordingly to Eqs. (4) and (10). We observe
+
+ZZPhase gates in the Hadamard-test circuit (Fig. 9) is given                                             that the energy is significantly larger than the exact value for
+                                                                                                         M = 1, 2, 3 and 4. Moreover, while the energy decreases with
+by                                                                                                       increasing M up to M = 3, it increases at M = 4. In particular,
+                                                                                                         the energy at M = 4 is noticeably lager than the exact value
+                  NZZPhase  =  2ML       +  3L           -  1.                              (B1)         and the result from noiseless simulation.
+                                            2
+                                                                                                            Figure 16 shows the real and imaginary parts of
+For a fixed system size of L = 18, we find that NZZPhase = 26,                                           M(opt)|U^ R|M(opt) as well as the associated polarization
+62, 98, 134, and 170 for M = 0, 1, 2, 3, and 4, respectively.                                            difference PR(M), evaluated in the same way as in Fig. 10
+Importantly, no SWAP gates are used in the circuit due to the                                            but using the Reimei system. Despite the significantly larger
+                                                                                                         energy values compared to the exact results for M = 1, 2, 3,
+all-to-all connectivity of the H1-1 system.                                                              and 4, the polarization evaluated with the Reimei system suc-
+
+            Appendix C: Additional experimental results                                                  cessfully captures the topological phase transition. These re-
+
+   In this Appendix, we present additional experimental re-                                              sults support the robustness of the polarization against noise,
+sults for the energy and polarization of the L = 18 system,
+obtained using Quantinuum's trapped-ion quantum computer                                                 attributed to its topological nature, as discussed in Sec. IV.
+Reimei.
+                                                                                                         It should be noted, however, that the energy and polarization
+
+                                                                                                         experiments shown in Figs. 15 and 16, respectively, were per-
+
+                                                                                                         formed independently.
+                                                                                                                                                     12
+
+        /2
+
+(m1)    /4
+
+               (a) M = L/4                       (c) M < L/4                (e) L = 200
+            0
+        /2
+
+(m2)    /4
+
+            (b) M = L/4                          (d) M < L/4                (f) L = 200
+
+        00  0.2 0.4 0.6 0.8                  10        0.2 0.4 0.6 0.8  10  0.2 0.4 0.6 0.8         1
+                    m/(M + 1)                          m/(M + 1)                         m/(M + 1)
+
+FIG. 13. Optimized variational parameters opt for (v, w) = (1.0, 1.1), corresponding to Path II. (a, b) opt for various system sizes up to
+L = 200 with M = L/4, where the exact ground state state is successfully prepared. (c, d) opt for M < L/4 with M up to 50. Note that
+as long as M < L/4, the optimized variational parameters are independent of the system size L, for which the DQAP ansatz |M() with
+ = {m(1), m(2)}mM=1 is optimized. (e, f) opt for a fixed system size L = 200, where the DQAP ansatz |M() is optimized for different M. A
+clear discontinuity in the sets of the optimized parameters is observed between M = 50 (indicated in red) and M < 50 (indicated in blue),
+which is consistent with the abrupt variations in the ground-state energy [Fig. 3(b)], entanglement entropy [Fig. 4(b)], and mutual information
+[Fig. 6(b)].
+
+             /2
+
+(m1)    /4
+
+               (a) M = L/4                       (c) M < L/4                (e) L = 200
+            0
+        /2
+
+(m2)    /4
+
+            (b) M = L/4                          (d) M < L/4                (f) L = 200
+
+        00  0.2 0.4 0.6 0.8                  10        0.2 0.4 0.6 0.8  10  0.2 0.4 0.6 0.8         1
+                    m/(M + 1)                          m/(M + 1)                         m/(M + 1)
+
+FIG. 14. Same as Fig. 13, except that the parameters in the target final Hamiltonian are set to (v, w) = (1.1, 1), corresponding to Path I.
+
+[1] R. P. Feynman, Simulating physics with computers, Interna-      https://www.science.org/doi/pdf/10.1126/science.273.5278.1073.
+                                                                [3] I. M. Georgescu, S. Ashhab, and F. Nori, Quantum simulation,
+tional Journal of Theoretical Physics 21, 467 (1982).
+                                                                    Rev. Mod. Phys. 86, 153 (2014).
+[2] S.      Lloyd,          Universal  quantum         sim-     [4] A. Mazurenko, C. S. Chiu, G. Ji, M. F. Parsons, M. Kana´sz-
+
+ulators,    Science         273,       1073            (1996),
+0.5          Exact                                                         1.0 (a)                                            13
+                                                                           0.5
+0.6          Reimei                                                                                M=4
+
+0.7          Noiseless
+
+E/L0.8
+                                                           imaginary part y
+0.9                                                           R(M)         0.0                     M=3
+
+1.0                                                                                                M=2
+
+1.1 0  1  2  3       4                                                     0.5                     M=1
+
+          M                                                                          Reimei
+
+                                                                           1.01.0    Noiseless M = 0
+
+FIG. 15. Energy per site as a function of the circuit depth M for                    0.5 0.0              0.5  1.0
+the 18-site lattice. Red squares represent the experimental results                          real part x
+obtained using the Reimei system, blue circles denote the noiseless
+simulation results, and black crosses indicate the numerically exact            (b)
+results. The dashed horizontal line represents the exact ground-state
+energy of the final target Hamiltonian. The model parameters are the
+same as those used in Fig. 10.
+
+      Nagy, R. Schmidt, F. Grusdt, E. Demler, D. Greif, and                          Reimei
+      M. Greiner, A cold-atom fermi­hubbard antiferromagnet, Na-                     Noiseless
+      ture 545, 462­466 (2017).
+ [5] K. Seki, T. Shirakawa, and S. Yunoki, Symmetry-adapted vari-          0
+      ational quantum eigensolver, Phys. Rev. A 101, 052340 (2020).
+ [6] S. Stanisic, J. L. Bosse, F. M. Gambetta, R. A. Santos,                    0    1          2         3    4
+      W. Mruczkiewicz, T. E. O'Brien, E. Ostby, and A. Montanaro,                               M
+      Observing ground-state properties of the fermi-hubbard model
+      using a scalable algorithm on a quantum computer, Nature          FIG. 16. Same as Fig. 10, but the experimental results are obtained
+      Communications 13, 10.1038/s41467-022-33335-4 (2022).             using the Reimei system.
+ [7] R.-Y. Sun, T. Shirakawa, and S. Yunoki, Efficient variational
+      quantum circuit structure for correlated topological phases,            Leonardo, Jansen, Karl, Lewenstein, Maciej, Montangero, Si-
+      Phys. Rev. B 108, 075127 (2023).                                        mone, Muschik, Christine A., Reznik, Benni, Rico, Enrique,
+ [8] Y. Kikuchi, C. Mc Keever, L. Coopmans, M. Lubasch,                       Tagliacozzo, Luca, Van Acoleyen, Karel, Verstraete, Frank,
+      and M. Benedetti, Realization of quantum signal processing              Wiese, Uwe-Jens, Wingate, Matthew, Zakrzewski, Jakub, and
+      on a noisy quantum computer, npj Quantum Information 9,                 Zoller, Peter, Simulating lattice gauge theories within quantum
+      10.1038/s41534-023-00762-0 (2023).                                      technologies, Eur. Phys. J. D 74, 165 (2020).
+ [9] N. Maskara, S. Ostermann, J. Shee, M. Kalinowski, A. M.            [14] R. C. Farrell, M. Illa, A. N. Ciavarella, and M. J. Savage, Scal-
+      Gomez, R. A. Bravo, D. S. Wang, A. I. Krylov, N. Y. Yao,                able circuits for preparing ground states on digital quantum
+      M. Head-Gordon, M. D. Lukin, and S. F. Yelin, Programmable              computers: The schwinger model vacuum on 100 qubits, PRX
+      simulations of molecules and materials with reconfigurable              Quantum 5, 020315 (2024).
+      quantum processors (2023), arXiv:2312.02265 [quant-ph].           [15] T. Hayata, K. Seki, and A. Yamamoto, Floquet prethermaliza-
+[10] A. Summer, C. Chiaracane, M. T. Mitchison, and J. Goold, Cal-            tion of Z2 lattice gauge theory on superconducting qubits, Phys.
+      culating the many-body density of states on a digital quantum           Rev. D 110, 114503 (2024).
+      computer, Phys. Rev. Res. 6, 013106 (2024).                       [16] T. Hayata and Y. Hidaka, Floquet evolution of the q-deformed
+[11] K. He´mery, K. Ghanem, E. Crane, S. L. Campbell, J. M. Dreil-            SU(3)1 yang-mills theory on a two-leg ladder, Phys. Rev. D 111,
+      ing, C. Figgatt, C. Foltz, J. P. Gaebler, J. Johansen, M. Mills,        034513 (2025).
+      S. A. Moses, J. M. Pino, A. Ransford, M. Rowe, P. Siegfried,
+      R. P. Stutz, H. Dreyer, A. Schuckert, and R. Nigmatullin, Mea-
+      suring the loschmidt amplitude for finite-energy properties of
+      the fermi-hubbard model on an ion-trap quantum computer,
+      PRX Quantum 5, 030323 (2024).
+[12] K. Seki, Y. Kikuchi, T. Hayata, and S. Yunoki, Simulating
+      floquet scrambling circuits on trapped-ion quantum computers
+      (2024), arXiv:2405.07613 [quant-ph].
+[13] Ban~uls, Mari Carmen, Blatt, Rainer, Catani, Jacopo, Celi,
+      Alessio, Cirac, Juan Ignacio, Dalmonte, Marcello, Fallani,
+                                                                             14
+
+[17] D.-W. Zhang, Y.-Q. Zhu, Y. X. Zhao, H. Yan,                             [24] R. Li, K. Kubo, Y. Ho, Z. Yan, Y. Nakamura, and H. Goto,
+      and S.-L. Z. and, Topological quantum matter with                            Realization of high-fidelity cz gate based on a double-transmon
+      cold atoms, Advances in Physics 67, 253 (2018),                              coupler, Phys. Rev. X 14, 041050 (2024).
+      https://doi.org/10.1080/00018732.2019.1594094.
+                                                                             [25] D. Gao, D. Fan, C. Zha, J. Bei, G. Cai, J. Cai, S. Cao, X. Zeng,
+[18] K. J. Satzinger, Y.-J. Liu, A. Smith, C. Knapp, M. Newman,                    F. Chen, J. Chen, K. Chen, X. Chen, X. Chen, Z. Chen, Z. Chen,
+      C. Jones, Z. Chen, C. Quintana, X. Mi, A. Dunsworth, C. Gid-                 Z. Chen, W. Chu, H. Deng, Z. Deng, P. Ding, X. Ding, Z. Ding,
+      ney, I. Aleiner, F. Arute, K. Arya, J. Atalaya, R. Babbush,                  S. Dong, Y. Dong, B. Fan, Y. Fu, S. Gao, L. Ge, M. Gong,
+      J. C. Bardin, R. Barends, J. Basso, A. Bengtsson, A. Bilmes,                 J. Gui, C. Guo, S. Guo, X. Guo, T. He, L. Hong, Y. Hu, H.-L.
+      M. Broughton, B. B. Buckley, D. A. Buell, B. Burkett, N. Bush-               Huang, Y.-H. Huo, T. Jiang, Z. Jiang, H. Jin, Y. Leng, D. Li,
+      nell, B. Chiaro, R. Collins, W. Courtney, S. Demura, A. R.                   D. Li, F. Li, J. Li, J. Li, J. Li, J. Li, N. Li, S. Li, W. Li, Y. Li,
+      Derk, D. Eppens, C. Erickson, L. Faoro, E. Farhi, A. G. Fowler,              Y. Li, F. Liang, X. Liang, N. Liao, J. Lin, W. Lin, D. Liu,
+      B. Foxen, M. Giustina, A. Greene, J. A. Gross, M. P. Harri-                  H. Liu, M. Liu, X. Liu, X. Liu, Y. Liu, H. Lou, Y. Ma, L. Meng,
+      gan, S. D. Harrington, J. Hilton, S. Hong, T. Huang, W. J. Hug-              H. Mou, K. Nan, B. Nie, M. Nie, J. Ning, L. Niu, W. Peng,
+      gins, L. B. Ioffe, S. V. Isakov, E. Jeffrey, Z. Jiang, D. Kafri,             H. Qian, H. Rong, T. Rong, H. Shen, Q. Shen, H. Su, F. Su,
+      K. Kechedzhi, T. Khattar, S. Kim, P. V. Klimov, A. N. Ko-                    C. Sun, L. Sun, T. Sun, Y. Sun, Y. Tan, J. Tan, L. Tang, W. Tu,
+      rotkov, F. Kostritsa, D. Landhuis, P. Laptev, A. Locharla,                   C. Wan, J. Wang, B. Wang, C. Wang, C. Wang, C. Wang,
+      E. Lucero, O. Martin, J. R. McClean, M. McEwen, K. C. Miao,                  J. Wang, L. Wang, R. Wang, S. Wang, X. Wang, Z. Wei, J. Wei,
+      M. Mohseni, S. Montazeri, W. Mruczkiewicz, J. Mutus, O. Naa-                 D. Wu, G. Wu, J. Wu, S. Wu, Y. Wu, S. Xie, L. Xin, Y. Xu,
+      man, M. Neeley, C. Neill, M. Y. Niu, T. E. O'Brien, A. Oprem-                C. Xue, K. Yan, W. Yang, X. Yang, Y. Yang, Y. Ye, Z. Ye,
+      cak, B. Pato´, A. Petukhov, N. C. Rubin, D. Sank, V. Shvarts,                C. Ying, J. Yu, Q. Yu, W. Yu, S. Zhan, F. Zhang, H. Zhang,
+      D. Strain, M. Szalay, B. Villalonga, T. C. White, Z. Yao, P. Yeh,            K. Zhang, P. Zhang, W. Zhang, Y. Zhang, Y. Zhang, L. Zhang,
+      J. Yoo, A. Zalcman, H. Neven, S. Boixo, A. Megrant, Y. Chen,                 G. Zhao, P. Zhao, X. Zhao, X. Zhao, Y. Zhao, Z. Zhao,
+      J. Kelly, V. Smelyanskiy, A. Kitaev, M. Knap, F. Pollmann, and               L. Zheng, F. Zhou, L. Zhou, N. Zhou, N. Zhou, S. Zhou,
+      P. Roushan, Realizing topologically ordered states on a quan-                S. Zhou, Z. Zhou, C. Zhu, Q. Zhu, G. Zou, H. Zou, Q. Zhang,
+      tum processor, Science 374, 1237­1241 (2021).                                C.-Y. Lu, C.-Z. Peng, X. Zhu, and J.-W. Pan, Establishing
+                                                                                   a new benchmark in quantum computational advantage with
+[19] A. Smith, B. Jobst, A. G. Green, and F. Pollmann, Crossing                    105-qubit zuchongzhi 3.0 processor (2024), arXiv:2412.11924
+      a topological phase transition with a quantum computer, Phys.                [quant-ph].
+      Rev. Res. 4, L022020 (2022).
+                                                                             [26] J. Preskill, Quantum Computing in the NISQ era and beyond,
+[20] S. A. Moses, C. H. Baldwin, M. S. Allman, R. Ancona,                          Quantum 2, 79 (2018).
+      L. Ascarrunz, C. Barnes, J. Bartolotta, B. Bjork, P. Blanchard,
+      M. Bohn, J. G. Bohnet, N. C. Brown, N. Q. Burdick, W. C.               [27] F. Arute, K. Arya, R. Babbush, D. Bacon, J. C. Bardin,
+      Burton, S. L. Campbell, J. P. Campora, C. Carron, J. Chambers,               R. Barends, R. Biswas, S. Boixo, F. G. S. L. Brandao, D. A.
+      J. W. Chan, Y. H. Chen, A. Chernoguzov, E. Chertkov, J. Col-                 Buell, B. Burkett, Y. Chen, Z. Chen, B. Chiaro, R. Collins,
+      ina, J. P. Curtis, R. Daniel, M. DeCross, D. Deen, C. Delaney,               W. Courtney, A. Dunsworth, E. Farhi, B. Foxen, A. Fowler,
+      J. M. Dreiling, C. T. Ertsgaard, J. Esposito, B. Estey, M. Fab-              C. Gidney, M. Giustina, R. Graff, K. Guerin, S. Habegger, M. P.
+      rikant, C. Figgatt, C. Foltz, M. Foss-Feig, D. Francois, J. P.               Harrigan, M. J. Hartmann, A. Ho, M. Hoffmann, T. Huang,
+      Gaebler, T. M. Gatterman, C. N. Gilbreth, J. Giles, E. Glynn,                T. S. Humble, S. V. Isakov, E. Jeffrey, Z. Jiang, D. Kafri,
+      A. Hall, A. M. Hankin, A. Hansen, D. Hayes, B. Higashi,                      K. Kechedzhi, J. Kelly, P. V. Klimov, S. Knysh, A. Korotkov,
+      I. M. Hoffman, B. Horning, J. J. Hout, R. Jacobs, J. Johansen,               F. Kostritsa, D. Landhuis, M. Lindmark, E. Lucero, D. Lyakh,
+      L. Jones, J. Karcz, T. Klein, P. Lauria, P. Lee, D. Liefer, S. T. Lu,        S. Mandra`, J. R. McClean, M. McEwen, A. Megrant, X. Mi,
+      D. Lucchetti, C. Lytle, A. Malm, M. Matheny, B. Mathewson,                   K. Michielsen, M. Mohseni, J. Mutus, O. Naaman, M. Nee-
+      K. Mayer, D. B. Miller, M. Mills, B. Neyenhuis, L. Nugent,                   ley, C. Neill, M. Y. Niu, E. Ostby, A. Petukhov, J. C. Platt,
+      S. Olson, J. Parks, G. N. Price, Z. Price, M. Pugh, A. Rans-                 C. Quintana, E. G. Rieffel, P. Roushan, N. C. Rubin, D. Sank,
+      ford, A. P. Reed, C. Roman, M. Rowe, C. Ryan-Anderson,                       K. J. Satzinger, V. Smelyanskiy, K. J. Sung, M. D. Trevithick,
+      S. Sanders, J. Sedlacek, P. Shevchuk, P. Siegfried, T. Skripka,              A. Vainsencher, B. Villalonga, T. White, Z. J. Yao, P. Yeh,
+      B. Spaun, R. T. Sprenkle, R. P. Stutz, M. Swallows, R. I. Tobey,             A. Zalcman, H. Neven, and J. M. Martinis, Quantum supremacy
+      A. Tran, T. Tran, E. Vogt, C. Volin, J. Walker, A. M. Zolot, and             using a programmable superconducting processor, Nature 574,
+      J. M. Pino, A race-track trapped-ion quantum processor, Phys.                505 (2019).
+      Rev. X 13, 041052 (2023).
+                                                                             [28] H.-S. Zhong, H. Wang, Y.-H. Deng, M.-C. Chen, L.-
+[21] D. C. McKay, I. Hincks, E. J. Pritchett, M. Carroll, L. C. G.                 C. Peng, Y.-H. Luo, J. Qin, D. Wu, X. Ding, Y. Hu,
+      Govia, and S. T. Merkel, Benchmarking quantum processor per-                 P. Hu, X.-Y. Yang, W.-J. Zhang, H. Li, Y. Li, X. Jiang,
+      formance at scale (2023), arXiv:2311.05933 [quant-ph].                       L. Gan, G. Yang, L. You, Z. Wang, L. Li, N.-
+                                                                                   L. Liu, C.-Y. Lu, and J.-W. Pan, Quantum computa-
+[22] D. Bluvstein, S. J. Evered, A. A. Geim, S. H. Li, H. Zhou,                    tional advantage using photons, Science 370, 1460 (2020),
+      T. Manovitz, S. Ebadi, M. Cain, M. Kalinowski, D. Hangleiter,                https://www.science.org/doi/pdf/10.1126/science.abe8770.
+      J. P. Bonilla Ataides, N. Maskara, I. Cong, X. Gao,
+      P. Sales Rodriguez, T. Karolyshyn, G. Semeghini, M. J. Gul-            [29] Y. Wu, W.-S. Bao, S. Cao, F. Chen, M.-C. Chen, X. Chen, T.-H.
+      lans, M. Greiner, V. Vuletic´, and M. D. Lukin, Logical quan-                Chung, H. Deng, Y. Du, D. Fan, M. Gong, C. Guo, C. Guo,
+      tum processor based on reconfigurable atom arrays, Nature 626,               S. Guo, L. Han, L. Hong, H.-L. Huang, Y.-H. Huo, L. Li,
+      58­65 (2023).                                                                N. Li, S. Li, Y. Li, F. Liang, C. Lin, J. Lin, H. Qian, D. Qiao,
+                                                                                   H. Rong, H. Su, L. Sun, L. Wang, S. Wang, D. Wu, Y. Xu,
+[23] Y. Sunada, K. Yuki, Z. Wang, T. Miyamura, J. Ilves, K. Mat-                   K. Yan, W. Yang, Y. Yang, Y. Ye, J. Yin, C. Ying, J. Yu, C. Zha,
+      suura, P. A. Spring, S. Tamate, S. Kono, and Y. Nakamura,                    C. Zhang, H. Zhang, K. Zhang, Y. Zhang, H. Zhao, Y. Zhao,
+      Photon-noise-tolerant dispersive readout of a superconducting                L. Zhou, Q. Zhu, C.-Y. Lu, C.-Z. Peng, X. Zhu, and J.-W.
+      qubit using a nonlinear purcell filter, PRX Quantum 5, 010307                Pan, Strong quantum computational advantage using a super-
+      (2024).
+                                                                           15
+
+      conducting quantum processor, Phys. Rev. Lett. 127, 180501           [34] Y. Alexeev, M. Amsler, M. A. Barroca, S. Bassini, T. Battelle,
+      (2021).                                                                    D. Camps, D. Casanova, Y. J. Choi, F. T. Chong, C. Chung,
+[30] H.-S. Zhong, Y.-H. Deng, J. Qin, H. Wang, M.-C. Chen, L.-C.                 C. Codella, A. D. Co´rcoles, J. Cruise, A. Di Meglio, I. Duran,
+      Peng, Y.-H. Luo, D. Wu, S.-Q. Gong, H. Su, Y. Hu, P. Hu, X.-               T. Eckl, S. Economou, S. Eidenbenz, B. Elmegreen, C. Fare,
+      Y. Yang, W.-J. Zhang, H. Li, Y. Li, X. Jiang, L. Gan, G. Yang,             I. Faro, C. S. Ferna´ndez, R. N. B. Ferreira, K. Fuji, B. Fuller,
+      L. You, Z. Wang, L. Li, N.-L. Liu, J. J. Renema, C.-Y. Lu, and             L. Gagliardi, G. Galli, J. R. Glick, I. Gobbi, P. Gokhale,
+      J.-W. Pan, Phase-programmable gaussian boson sampling using                S. de la Puente Gonzalez, J. Greiner, B. Gropp, M. Grossi,
+      stimulated squeezed light, Phys. Rev. Lett. 127, 180502 (2021).            E. Gull, B. Healy, M. R. Hermes, B. Huang, T. S. Hum-
+[31] A. Morvan, B. Villalonga, X. Mi, S. Mandra`, A. Bengtsson,                  ble, N. Ito, A. F. Izmaylov, A. Javadi-Abhari, D. Jennewein,
+      P. V. Klimov, Z. Chen, S. Hong, C. Erickson, I. K. Droz-                   S. Jha, L. Jiang, B. Jones, W. A. de Jong, P. Jurcevic,
+      dov, J. Chau, G. Laun, R. Movassagh, A. Asfaw, L. T. A. N.                 W. Kirby, S. Kister, M. Kitagawa, J. Klassen, K. Klymko,
+      Branda~o, R. Peralta, D. Abanin, R. Acharya, R. Allen, T. I. An-           K. Koh, M. Kondo, D. M. Ku¨rkc¸u¨og~lu, K. Kurowski, T. Laino,
+      dersen, K. Anderson, M. Ansmann, F. Arute, K. Arya, J. Ata-                R. Landfield, M. Leininger, V. Leyton-Ortega, A. Li, M. Lin,
+      laya, J. C. Bardin, A. Bilmes, G. Bortoli, A. Bourassa, J. Bo-             J. Liu, N. Lorente, A. Luckow, S. Martiel, F. Martin-Fernandez,
+      vaird, L. Brill, M. Broughton, B. B. Buckley, D. A. Buell,                 M. Martonosi, C. Marvinney, A. C. Medina, D. Merten,
+      T. Burger, B. Burkett, N. Bushnell, J. Campero, H.-S. Chang,               A. Mezzacapo, K. Michielsen, A. Mitra, T. Mittal, K. Moon,
+      B. Chiaro, D. Chik, C. Chou, J. Cogan, R. Collins, P. Conner,              J. Moore, S. Mostame, M. Motta, Y.-H. Na, Y. Nam, P. Narang,
+      W. Courtney, A. L. Crook, B. Curtin, D. M. Debroy, A. D. T.                Y.-y. Ohnishi, D. Ottaviani, M. Otten, S. Pakin, V. R. Pascuzzi,
+      Barba, S. Demura, A. D. Paolo, A. Dunsworth, L. Faoro,                     E. Pednault, T. Piontek, J. Pitera, P. Rall, G. S. Ravi, N. Robert-
+      E. Farhi, R. Fatemi, V. S. Ferreira, L. F. Burgos, E. Forati, A. G.        son, M. A. Rossi, P. Rydlichowski, H. Ryu, G. Samsonidze,
+      Fowler, B. Foxen, G. Garcia, E´ . Genois, W. Giang, C. Gidney,             M. Sato, N. Saurabh, V. Sharma, K. Sharma, S. Shin, G. Sless-
+      D. Gilboa, M. Giustina, R. Gosula, A. G. Dau, J. A. Gross,                 man, M. Steiner, I. Sitdikov, I.-S. Suh, E. D. Switzer, W. Tang,
+      S. Habegger, M. C. Hamilton, M. Hansen, M. P. Harrigan,                    J. Thompson, S. Todo, M. C. Tran, D. Trenev, C. Trott, H.-H.
+      S. D. Harrington, P. Heu, M. R. Hoffmann, T. Huang, A. Huff,               Tseng, N. M. Tubman, E. Tureci, D. G. Valin~as, S. Vallecorsa,
+      W. J. Huggins, L. B. Ioffe, S. V. Isakov, J. Iveland, E. Jeffrey,          C. Wever, K. Wojciechowski, X. Wu, S. Yoo, N. Yoshioka,
+      Z. Jiang, C. Jones, P. Juhas, D. Kafri, T. Khattar, M. Khezri,             V. W.-z. Yu, S. Yunoki, S. Zhuk, and D. Zubarev, Quantum-
+      M. Kieferova´, S. Kim, A. Kitaev, A. R. Klots, A. N. Korotkov,             centric supercomputing for materials science: A perspective on
+      F. Kostritsa, J. M. Kreikebaum, D. Landhuis, P. Laptev, K.-M.              challenges and future directions, Future Generation Computer
+      Lau, L. Laws, J. Lee, K. W. Lee, Y. D. Lensky, B. J. Lester,               Systems 160, 666 (2024).
+      A. T. Lill, W. Liu, W. P. Livingston, A. Locharla, F. D. Mal-
+      one, O. Martin, S. Martin, J. R. McClean, M. McEwen, K. C.           [35] K. Shinjo, K. Seki, T. Shirakawa, R.-Y. Sun, and S. Yunoki,
+      Miao, A. Mieszala, S. Montazeri, W. Mruczkiewicz, O. Naa-                  Unveiling clean two-dimensional discrete time quasicrystals on
+      man, M. Neeley, C. Neill, A. Nersisyan, M. Newman, J. H. Ng,               a digital quantum computer, arXiv e-prints , arXiv:2403.16718
+      A. Nguyen, M. Nguyen, M. Y. Niu, T. E. O'Brien, S. Omonije,                (2024), arXiv:2403.16718 [quant-ph].
+      A. Opremcak, A. Petukhov, R. Potter, L. P. Pryadko, C. Quin-
+      tana, D. M. Rhodes, C. Rocque, E. Rosenberg, N. C. Rubin,            [36] J. Robledo-Moreno, M. Motta, H. Haas, A. Javadi-Abhari,
+      N. Saei, D. Sank, K. Sankaragomathi, K. J. Satzinger, H. F.                P. Jurcevic, W. Kirby, S. Martiel, K. Sharma, S. Sharma, T. Shi-
+      Schurkus, C. Schuster, M. J. Shearn, A. Shorter, N. Shutty,                rakawa, I. Sitdikov, R.-Y. Sun, K. J. Sung, M. Takita, M. C.
+      V. Shvarts, V. Sivak, J. Skruzny, W. C. Smith, R. D. Somma,                Tran, S. Yunoki, and A. Mezzacapo, Chemistry Beyond Exact
+      G. Sterling, D. Strain, M. Szalay, D. Thor, A. Torres, G. Vi-              Solutions on a Quantum-Centric Supercomputer, arXiv e-prints
+      dal, C. V. Heidweiller, T. White, B. W. K. Woo, C. Xing,                   , arXiv:2405.05068 (2024), arXiv:2405.05068 [quant-ph].
+      Z. J. Yao, P. Yeh, J. Yoo, G. Young, A. Zalcman, Y. Zhang,
+      N. Zhu, N. Zobrist, E. G. Rieffel, R. Biswas, R. Babbush,            [37] A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou,
+      D. Bacon, J. Hilton, E. Lucero, H. Neven, A. Megrant, J. Kelly,            P. J. Love, A. Aspuru-Guzik, and J. L. O'Brien, A variational
+      P. Roushan, I. Aleiner, V. Smelyanskiy, K. Kechedzhi, Y. Chen,             eigenvalue solver on a photonic quantum processor, Nature
+      and S. Boixo, Phase transitions in random circuit sampling, Na-            Communications 5, 10.1038/ncomms5213 (2014).
+      ture 634, 328 (2024).
+[32] M. DeCross, R. Haghshenas, M. Liu, E. Rinaldi, J. Gray,               [38] A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink,
+      Y. Alexeev, C. H. Baldwin, J. P. Bartolotta, M. Bohn,                      J. M. Chow, and J. M. Gambetta, Hardware-efficient variational
+      E. Chertkov, J. Cline, J. Colina, D. DelVento, J. M. Dreil-                quantum eigensolver for small molecules and quantum mag-
+      ing, C. Foltz, J. P. Gaebler, T. M. Gatterman, C. N. Gilbreth,             nets, Nature 549, 242­246 (2017).
+      J. Giles, D. Gresh, A. Hall, A. Hankin, A. Hansen, N. He-
+      witt, I. Hoffman, C. Holliman, R. B. Hutson, T. Jacobs, J. Jo-       [39] E. Farhi, J. Goldstone, and S. Gutmann, A Quantum Approxi-
+      hansen, P. J. Lee, E. Lehman, D. Lucchetti, D. Lykov, I. S.                mate Optimization Algorithm, arXiv e-prints , arXiv:1411.4028
+      Madjarov, B. Mathewson, K. Mayer, M. Mills, P. Niroula, J. M.              (2014), arXiv:1411.4028 [quant-ph].
+      Pino, C. Roman, M. Schecter, P. E. Siegfried, B. G. Tiemann,
+      C. Volin, J. Walker, R. Shaydulin, M. Pistoia, S. A. Moses,          [40] K. Seki and S. Yunoki, Spatial, spin, and charge symmetry pro-
+      D. Hayes, B. Neyenhuis, R. P. Stutz, and M. Foss-Feig, The                 jections for a fermi-hubbard model on a quantum computer,
+      computational power of random quantum circuits in arbitrary                Phys. Rev. A 105, 032419 (2022).
+      geometries (2024), arXiv:2406.02501 [quant-ph].
+[33] Y. Kim, A. Eddins, S. Anand, K. X. Wei, E. van den Berg,              [41] R.-Y. Sun, T. Shirakawa, and S. Yunoki, Parametrized quantum
+      S. Rosenblatt, H. Nayfeh, Y. Wu, M. Zaletel, K. Temme, and                 circuit for weight-adjustable quantum loop gas, Physical Re-
+      A. Kandala, Evidence for the utility of quantum computing be-              view B 107, 10.1103/physrevb.107.l041109 (2023).
+      fore fault tolerance, Nature 618, 500 (2023).
+                                                                           [42] J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush, and
+                                                                                 H. Neven, Barren plateaus in quantum neural network training
+                                                                                 landscapes, Nature Communications 9, 4812 (2018).
+
+                                                                           [43] T. Shirakawa, K. Seki, and S. Yunoki, Discretized quan-
+                                                                                 tum adiabatic process for free fermions and comparison with
+                                                                                 the imaginary-time evolution, Phys. Rev. Research 3, 013004
+                                                                                 (2021).
+
+                                                                           [44] W. P. Su, J. R. Schrieffer, and A. J. Heeger, Solitons in poly-
+                                                                       16
+
+      acetylene, Phys. Rev. Lett. 42, 1698 (1979).                     [55] Y.-A. Chen and Y. Xu, Equivalence between fermion-to-qubit
+[45] J. K. Asbo´th, L. Oroszla´ny, and A. Pa´lyi, A Short Course             mappings in two spatial dimensions, PRX Quantum 4, 010326
+                                                                             (2023).
+      on Topological Insulators: Band-structure topology and
+      edge states in one and two dimensions, arXiv e-prints ,          [56] J. Nys and G. Carleo, Quantum circuits for solving local
+      arXiv:1509.02295 (2015), arXiv:1509.02295 [cond-mat.mes-               fermion-to-qubit mappings, Quantum 7, 930 (2023).
+      hall].
+[46] System Model H1 Powered by Honeywell, accessed on January         [57] E. H. Lieb and D. W. Robinson, The finite group velocity
+      18th, 2024.                                                            of quantum spin systems, Communications in Mathematical
+[47] R. Resta, Quantum-mechanical position operator in extended              Physics 28, 251 (1972).
+      systems, Phys. Rev. Lett. 80, 1800 (1998).
+[48] P. Jordan and E. Wigner, U¨ ber das paulische a¨quivalenzverbot,  [58] B. Jobst, A. Smith, and F. Pollmann, Finite-depth scaling of
+      Zeitschrift fu¨r Physik 47, 631 (1928).                                infinite quantum circuits for quantum critical points, Phys. Rev.
+[49] S. B. Bravyi and A. Y. Kitaev, Fermionic quantum computation,           Res. 4, 033118 (2022).
+      Annals of Physics 298, 210 (2002).
+[50] R. C. Ball, Fermions without fermion fields, Phys. Rev. Lett.     [59] P. Calabrese and J. Cardy, Entanglement entropy and quantum
+      95, 176407 (2005).                                                     field theory, Journal of Statistical Mechanics: Theory and Ex-
+[51] F. Verstraete and J. I. Cirac, Mapping local hamiltonians of            periment 2004, P06002 (2004).
+      fermions to local hamiltonians of spins, Journal of Statistical
+      Mechanics: Theory and Experiment 2005, P09012 (2005).            [60] H. Watanabe and M. Oshikawa, Inequivalent berry phases for
+[52] J. Ruh, R. Finsterhoelzl, and G. Burkard, Digital quantum               the bulk polarization, Phys. Rev. X 8, 021065 (2018).
+      simulation of the bcs model with a central-spin-like quan-
+      tum processor, arXiv e-prints , arXiv:2209.09225 (2022),         [61] S. Sivarajah, S. Dilkes, A. Cowtan, W. Simmons, A. Edging-
+      arXiv:2209.09225 [quant-ph].                                           ton, and R. Duncan, t--ket: a retargetable compiler for nisq
+[53] M. Steudtner and S. Wehner, Fermion-to-qubit mappings with              devices, Quantum Science and Technology 6, 014003 (2020).
+      varying resource requirements for quantum simulation, New
+      Journal of Physics 20, 063010 (2018).                            [62] M. Hohenadler and F. F. Assaad, Correlation effects in two-
+[54] Z. Jiang, A. Kalev, W. Mruczkiewicz, and H. Neven, Optimal              dimensional topological insulators, Journal of Physics: Con-
+      fermion-to-qubit mapping via ternary trees with applications to        densed Matter 25, 143201 (2013).
+      reduced quantum states learning, Quantum 4, 276 (2020).
+                                                                       [63] S. Rachel, Interacting topological insulators: a review, Reports
+                                                                             on Progress in Physics 81, 116501 (2018).
+
+                                                                       [64] G. Bigan Mbeng, R. Fazio, and G. E. Santoro, Optimal quan-
+                                                                             tum control with digitized quantum annealing, arXiv e-prints ,
+                                                                             arXiv:1911.12259 (2019), arXiv:1911.12259 [quant-ph].
+
+                                                                       [65] https://github.com/CQCL/quantinuum-hardware-
+                                                                             specifications/blob/main/notebooks, accessed on March
+                                                                             26th, 2025.
+

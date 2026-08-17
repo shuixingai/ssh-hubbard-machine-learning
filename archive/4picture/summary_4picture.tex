@@ -1,0 +1,155 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[UTF8]{ctex}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\title{SSH-Hubbard 四指标联合诊断\\——阶段4 小结}
+\author{ED 精确对角化 (QuSpin), $L=6$, 半满}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{当前有效指标（2 张图）}
+
+在同一 PCA/t-SNE 投影（基于关联矩阵 36 维 $\to$ 2 维，前两主成分解释 97.7\% 方差）上，以不同颜色映射分别标记物理量：
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{lcc}
+\toprule
+指标 & 识别目标 & 状态 \\
+\midrule
+$\mathrm{gap}_4 = \varepsilon_4 - \varepsilon_3$ & 拓扑 $\leftrightarrow$ 非拓扑 & 已验证（kNN 96.9\%）$\checkmark$ \\
+双占据 $\langle n_{i\uparrow} n_{i\downarrow} \rangle$ & Mott 绝缘体特征 & 有效 $\checkmark$ \\
+电荷能隙 $\Delta_c$ & 金属 $\leftrightarrow$ 绝缘体 & 已移除，原数据只有自旋能隙无法区分金属绝缘 \\
+键序 $B$（奇偶键交替） & BOW 相 & 推迟，$L=6$ 边界效应无法区分 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{已知结论}
+
+\begin{enumerate}
+  \item 纠缠谱 $\mathrm{gap}_4$ 是当前最可靠的拓扑/非拓扑标签（kNN 96.9\%）。PCA 上右半平面 = 拓扑（$t_1<t_2$），左半平面 = 平庸（$t_1>t_2$）
+  \item 双占据随 $U$ 增大单调减小（$U=0$ 时 $\langle n_\uparrow n_\downarrow \rangle=0.25$，$U=4$ 时 $\sim 0.15$），PC2 方向部分反映 $U$ 效应（解释率仅 12\%，其余来自高阶关联）
+  \item 三种绝缘体（拓扑/平庸/Mott）之间存在定量连续过渡，无法以单一阈值明确区分
+  \item PCA 可将 36 维关联矩阵无信息损失压缩至 4 维（99.96\% 方差）
+  \item Resta 极化与 corr spread 已被证伪作为标签的有效性
+  \item ED 方法在 $t_1\approx t_2$（弱 dimerization 区）无收敛问题，DMRG 在该区域因电荷能隙关闭导致收敛所需 bond dimension 骤增，存在计算困难
+\end{enumerate}
+
+\section{读图方法}
+
+\begin{itemize}
+  \item \textbf{数据范围：} $t_1,t_2\in[0.25,4.0]$（步长 0.25），$U\in[0,4]$（步长 0.5），共 2\,304 点
+  \item \textbf{坐标含义：} PC1 约 86\% 由 $\log(t_1/t_2)$ 解释，近似对应 dimerization 方向；PC2 仅约 12\% 由 $U$ 解释，不可简称为"$U$ 坐标"
+  \item 色轴连续变化表示该物理量在该区域连续渐变，颜色梯度大的区域接近相边界
+  \item $t_1=t_2$ 在 PCA 图上随 $U$ 移动，不是一条直线
+\end{itemize}
+
+\section{待完成工作}
+
+\begin{itemize}
+  \item \textbf{电荷能隙 $\Delta_c$：} 真正的电荷能隙定义为 $\Delta_c = E(N+1) + E(N-1) - 2E(N)$，而非半满下的 $E_1-E_0$（大 $U$ 时后者为自旋能隙）。DMRG 数据已有该量，但因网格不匹配（DMRG: 0.1--2.0, 20$\times$20；ED: 0.25--4.0, 16$\times$16）暂未合并出图
+  \item \textbf{BOW 键序：} $L=6$ 开边界下奇偶键不对称主要来自本征 dimerization 而非真正 BOW 相。需 $L\ge 30$（DMRG）才能区分 spontaneous dimerization 与边界效应，推迟
+  \item \textbf{右下角不连续区域：} PCA 右下角（PC1$>$0, PC2$<$0）对应 $t_1<t_2$ 且 $U$ 较小的区域，100\% 拓扑标记，但 gap4 分布存在不连续特征，待加密扫描确认
+\end{itemize}
+
+\section{阶段 5：扩展 Hubbard 模型（+V）}
+
+在原有 SSH-Hubbard 模型中引入最近邻 Coulomb 排斥 $V\sum_i n_i n_{i+1}$，并新增两个序参量：
+
+\begin{align}
+\delta n &= \frac{1}{L}\sum_{i=1}^L (-1)^i \langle n_i \rangle
+\quad\text{（交错电荷密度，CDW 标志）} \\
+\delta B &= \frac{1}{L-1}\sum_{i=1}^{L-1} (-1)^i B_i,\quad
+B_i = 2\operatorname{Re}\langle c^\dagger_i c_{i+1} \rangle
+\quad\text{（键序交替，BOW 标志）}
+\end{align}
+
+\subsection{V-test：$L=6$ OBC 无法支撑 CDW}
+
+在 $t_1=t_2=1$、$U=0$ 的纯 V 模型中，将 $V$ 从 0 扫至 8（33 格点），测量 $\delta n$：
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{c|c|c}
+$V$ 范围 & $|\delta n|$ 最大值 & 结论 \\
+\hline
+$0$--$8$ & $3.4\times 10^{-14}$ & $\approx 0$（浮点噪声） \\
+\end{tabular}
+\caption{V-test 结果：$L=6$ OBC 下 $\delta n$ 始终为零。ED 精确对角化得到两个简并 CDW 基态的等权叠加，数学上保证 $\langle n_i\rangle=1$，无法自发对称破缺。}\label{tab:vtest}
+\end{table}
+
+\textbf{物理原因：}ED 精确对角化得到两个简并 CDW 基态（$\cdots1010\cdots$ 与 $\cdots0101\cdots$）的等权叠加，$\langle n_i\rangle=1$ 是数学恒等式。Ejima \& Nishimoto (2007) 的 DMRG 结果使用 $L\sim 120$ 才观察到 CDW；Sengupta et al. (2002) 的 QMC 使用 $L\sim 256$。$L=6$ 离 CDW 出现的有限尺寸阈值差两至三个数量级。
+
+\textbf{后续策略：}回归 $V=0$ 子空间，专注 $(t_1,t_2,U)$ 三分相图分析。$V$ 在 $L=6$ 仅增加数值噪声，不贡献物理 CDW 信号。
+
+\subsection{$\delta B$ 在 $t_1=t_2=1$ 的表现}
+
+当 $t_1=t_2=1$（均匀链）时，Hamiltonian 中无本征 dimerization，$\delta B$ 成为纯关联驱动的 BOW 序参量。在全 $U$-$V$ 平面上：
+\begin{itemize}
+  \item $\delta B$ 处处非零（$-0.73$ 至 $-0.47$），表明均匀链中电子关联自发产生键序
+  \item $\delta B$ 全为负号，键序相位冻结在单一 branch
+  \item $|U-V|$ 增大时 $|\delta B|$ 单调减小，反映关联竞争削弱自发键序
+\end{itemize}
+
+\subsection{DMRG 代码更新}
+
+\texttt{ssh\_dmrg.jl}（Julia ITensor）已完成以下修改：
+\begin{itemize}
+  \item Hamiltonian 加 $V\sum n_i n_{i+1}$ 项（默认 $V=0$，向后兼容）
+  \item $\delta n$ 提取函数 extract\_staggered\_charge()：从 MPS site density 用 $\frac{1}{L}\sum(-1)^i\langle n_i\rangle$ 计算
+  \item $\delta B$ 提取函数 extract\_bond\_alternation()：逐键构造 MPO 算符 $\langle c^\dagger_i c_{i+1} + \text{h.c.}\rangle$，再用 $\frac{1}{L-1}\sum(-1)^i B_i$ 计算
+  \item CLI 新增 {\tt --V <float>} 参数
+\end{itemize}
+DMRG 数据因 $L$ 设定问题暂未重新运行，待修复后执行。
+
+\subsection{可视化原则更新}
+
+\begin{itemize}
+  \item \textbf{不作一张图多维：}所有可视化按物理通道拆分（SDW/CDW/BOW 各自做图），非把多个物理量塞进一张图
+  \item \textbf{PCA 做多张区分图：}每张图用单种着色（gap4 / double occupancy / $\delta B$ 之一），通过 PCA 或 t-SNE 投影到二维观察聚类
+  \item \textbf{PCA 训练可选切片：}按参数区间（$t_1=t_2$ 均匀链 / $t_1\ll t_2$ 拓扑区）分别训练 PCA，避免大参数区间电离小信号
+\end{itemize}
+
+\subsection{已生成的 V=0 三分相图数据}
+
+目前已完成：
+\begin{itemize}
+  \item 生成全参数扫描 ED 数据：$16\times16\times17\times17 = 73\,984$ 点（$t_1,t_2\in[0.25,4.0]$, $U,V\in[0,4]$）
+  \item V-test（ED）：$L=6$ OBC 下 $\delta n\approx 0$，但该结论已被 DMRG 推翻（见下文）
+  \item 全部数据无 NaN 无 Inf
+  \item DMRG 代码已加 V/$\delta n$/$\delta B$
+\end{itemize}
+
+\subsection{DMRG V-test 推翻 ED 结论（2026-07-03 重要更新）}
+
+原 ED V-test 显示 $L=6$ OBC 下 $\delta n\approx 10^{-14}$，据此判断"CDW 不可能在 $L=6$ 出现"。但用 Julia ITensor DMRG（maxdim=600）在相同参数下重新计算后得到截然不同的结果：
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{c|c|c|c|c}
+\toprule
+$L$ & $V$ & $\delta n$ (DMRG) & $\delta B$ (DMRG) & CDW 状态 \\
+\midrule
+6  & 4 & $-1.1\times10^{-5}$ & $-0.462$ & 可忽略 \\
+6  & 8 & $-0.051$            & $-0.297$ & **弱但可观察** \\
+20 & 4 & $-0.274$            & $-0.139$ & **清晰 CDW** \\
+20 & 8 & $-0.439$            & $-0.088$ & **强 CDW** \\
+\bottomrule
+\end{tabular}
+\caption{DMRG V-test 结果。ED 的 $\delta n=0$ 是数学伪迹（两个简并 CDW 基态的精确等权叠加），DMRG 的 MPS 优化过程通过有限 bond dimension 自发选择单一 CDW 分支，给出物理上合理的 $\delta n$。}\label{tab:dmrg_vtest}
+\end{table}
+
+\textbf{物理解释：} 这是 DMRG 相比 ED 在研究 CDW 时的核心优势。ED 严格保持两个 CDW 基态的对称性，$\langle n_i\rangle=1$ 是数学精确的恒等式；DMRG 的 MPS 表示在有限 bond dimension 的迭代优化中会发生隐式对称破缺，选择其中一个 CDW 分支，从而给出物理上合理的序参量。即使 $L=6$，DMRG 在 $V=8$ 时已能观察到 $\delta n=-0.05$。
+
+$\delta B$ 随 $V$ 增大单调减小（CDW 压制 BOW），$L=20$ 时 $\delta B(V=4)=-0.139 \to \delta B(V=8)=-0.088$，符合物理预期。
+
+\textbf{后续行动计划：}用 DMRG（$L=20\sim40$）对 $U$-$V$ 平面做系统扫描，以 $\delta n$（CDW）和 $\delta B$（BOW）作为序参量，配合 gap4（拓扑标记），实现扩展 Hubbard 模型的三相（SDW/BOW/CDW）完整诊断。
+
+\end{document}

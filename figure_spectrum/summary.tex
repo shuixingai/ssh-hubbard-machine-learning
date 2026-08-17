@@ -1,0 +1,167 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[UTF8]{ctex}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+%python build_topo_dataset.py --n-t1 13 --n-t2 13 --n-u 7 --n-theta 24 --out topo_dataset_full.npz
+
+\title{SSH-Hubbard 模型的相识别\\——从精确对角化、张量网络到变分量子线路}
+\author{周元熹（南方科技大学）}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{项目概览}
+
+本项目围绕一个核心问题：\textbf{带相互作用的拓扑绝缘体如何被可靠地识别}。以 SSH-Hubbard 模型（一维拓扑绝缘体与格点 Hubbard 相互作用的复合）为对象，我们建立了一条从经典数值模拟到变分量子线路的完整研究管线：
+
+\[
+\text{精确对角化 (ED)} \;\rightarrow\; \text{张量网络 (DMRG)} \;\rightarrow\; \text{拓扑标签构建} \;\rightarrow\; \text{机器学习相识别} \;\rightarrow\; \text{DQAP 变分量子模拟}
+\]
+
+整条管线贯穿一条方法论主线：\textbf{拓扑标签必须与边界条件及测量协议配对定义}。全局闭合量（如 Resta 极化）只有在闭合边界条件下才是有意义的序参量；这一原则既划定了经典数值中各类标签的适用范围，也直接指导了第~5 节变分量子线路在反周期边界条件（APBC）下成功读取拓扑扇区的方案设计。
+
+\section{数值方法}
+
+\subsection{精确对角化（QuSpin，$L=6$ 半满）}
+
+先在 $t_1,t_2\in[0.5,1.5]$，$U\in[0,4]$ 的网格上完成 1089 个点的精确对角化；随后将参数范围扩展至 $t_1,t_2\in[0.05,2.0]$（步长 0.05，$40\times40\times9=14\,400$ 点）。扩展后纠缠谱 $\mathrm{gap}_4$ 标签保持稳定，kNN 分类精度约 96\%，相图干净无异常。精确对角化无收敛问题，适合快速生成全相图标签。
+
+\subsection{张量网络（Julia ITensor DMRG，$L=20$）}
+
+DMRG 用于在更大系统尺寸下对关键区域做高精度验证，与 ED 形成互补分工：\textbf{ED 做全相图扫描，DMRG 在关键区域做高精度大尺寸验证}。两者优势互补关系见表~\ref{tab:comp}。
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{lcc}
+\toprule
+ & ED（$L=6$） & DMRG（$L=20$--$100$） \\
+\midrule
+相内部（远离 $t_1\approx t_2$） & $\checkmark$ 干净、快 & $\checkmark$ 可做大尺寸标度 \\
+相边界（$t_1\approx t_2$） & $\checkmark$ 无收敛问题 & $\triangle$ 需增大 $\mathrm{bond\_dim}$ \\
+中心荷标度 & $\times$ $L$ 太小 & $\checkmark$ $S(L)\sim (c/3)\ln L$ \\
+边缘态穿透深度 & $\times$ $L$ 太小 & $\checkmark$ 可直接测量 \\
+\bottomrule
+\end{tabular}
+\caption{ED 与 DMRG 的优势互补。ED 承担全相图标签扫描，DMRG 在关键区域做大尺寸高精度验证。}
+\label{tab:comp}
+\end{table}
+
+\section{拓扑标签构建}
+
+\subsection{电荷能隙 $\Delta_c$：金属/非金属判据}
+
+电荷能隙 $\Delta_c = E_1 - E_0$ 在参数空间内始终为正，未观测到能隙关闭：$\Delta_c$ 随 $U$ 增大单调减小，但始终被 Hubbard $U$ 与 SSH dimerization 共同维持。\textbf{本参数范围内所有点均为绝缘体}，$\Delta_c$ 作为金属/非金属判据在这一范围内保持一致性。
+
+\subsection{纠缠谱间隙 gap4：拓扑/非拓扑标签}
+
+纠缠谱的第 4--5 能级间隙
+\[
+\mathrm{gap}_4 = \varepsilon_4 - \varepsilon_3
+\]
+在传统 SSH 拓扑区（$t_1 < t_2$）显著小于平庸区（$t_1 > t_2$）：
+\[
+\mathrm{gap}_4^{\text{拓扑}} \approx 5.4,\qquad
+\mathrm{gap}_4^{\text{平庸}} \approx 10.0 \quad (U=0)
+\]
+拓扑边缘态为纠缠谱提供了额外的 Schmidt 值，填充了 bulk 能级之间的间隙，导致 $\mathrm{gap}_4$ 变小。\textbf{$\mathrm{gap}_4$ 可作为拓扑/非拓扑的二分类标签，kNN 分类精度达 96.9\%}。
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{lccc}
+\toprule
+$U$ & 拓扑区 $(t_1<t_2)$ $\mathrm{gap}_4$ & 平庸区 $(t_1>t_2)$ $\mathrm{gap}_4$ & 区分度 \\
+\midrule
+0.0 & 5.59 & 7.62 & 清晰 \\
+1.0 & 4.20 & 7.30 & 清晰 \\
+2.0 & 3.42 & 7.23 & 清晰 \\
+3.0 & 2.85 & 7.25 & 清晰 \\
+4.0 & 2.41 & 7.31 & 清晰 \\
+\bottomrule
+\end{tabular}
+\caption{纠缠谱 gap4 随 $U$ 的变化。拓扑区的 gap4 随 $U$ 增大连续减小（从 5.59 降至 2.41），平庸区基本不变，两者始终保持可区分性。}
+\label{tab:gap4}
+\end{table}
+
+\subsection{单粒子 Zak phase：严格参考}
+
+在 $U=0$ 极限下，SSH 模型的单粒子 Zak phase 提供拓扑不变量的严格解析参考，用于校准其余数值标签。
+
+\subsection{Resta 极化：全局闭合量与边界条件}
+
+Resta 极化 $P_R$ 是一个全局闭合量。在 $L=6$ 开边界条件（OBC）下，它退化为 $P=0.5$，不再具有区分拓扑与平庸的能力。这一现象并非标签的失效，而是揭示了一条重要原则：\textbf{全局闭合量必须配闭合边界条件}。正是这一认识，直接指导了第~5 节 DQAP 量子模拟在反周期边界条件下测量极化并成功读取拓扑扇区的方案——经典数值中积累的边界条件教训，成为量子线路设计的前提。
+
+\section{机器学习相识别}
+
+\subsection{标签选择：gap4 优于电荷能隙}
+
+纠缠谱 $\mathrm{gap}_4$ 是比电荷能隙 $\Delta_c$ 更灵敏的拓扑标记（kNN: 96.9\% vs 90.9\%），且对 $U$ 的响应与 $\Delta_c$ 定性一致（一致率 70.6\%）。
+
+\subsection{特征降维：PCA 36 维 $\to$ 4 维}
+
+单粒子关联矩阵 $\rho_{ij}$（$6\times6=36$ 维）经 PCA 可无损压缩至 4 维（保留 99.96\% 方差），后续机器学习均在降维空间中进行。
+
+\subsection{粗扫 $\to$ 精确识别的策略}
+
+采用"粗扫 $\to$ 精确识别"的两阶段策略：先以粗网格扫描全相图、用 ML 定位相边界的大致位置；再对关键区域加密采样，做高精度识别。在扩展参数范围内（14\,400 点）该策略保持稳定，相图干净无异常。
+
+\subsection{方法论结论}
+
+\textbf{拓扑标签必须与边界条件及测量协议配对定义}。这一结论同时澄清了两个数值观察的物理含义：单粒子关联矩阵的特征值 spread 实际测量的是基态偏离 Slater 行列式的程度，反映的是关联强度（$U$ 驱动）而非拓扑性质；而关联矩阵与纠缠谱作为标签的适用性，也严格依赖测量协议的选择。\textbf{拓扑标签应针对拓扑量本身而非关联量}。
+
+\section{DQAP 变分量子模拟}
+
+\subsection{方法：五步递进}
+
+变分量子模拟遵循五步递进的方法论，顺序不可倒置，每步设置验证闸门：
+
+\begin{enumerate}
+  \item \textbf{定物理标签}——先确定要研究的物理量（能隙 / Zak phase / 纠缠谱 gap4 / 极化），标签选错则全盘皆错；
+  \item \textbf{定量子线路}——由标签与模型决定 qubit 映射、ansatz 与 DQAP 分层；
+  \item \textbf{验证线路能读标签}——在已知答案点（如 $U=0$ 解析结果）校准线路读出；
+  \item \textbf{验证完整模拟}——基态能量、谱、关联均须对上 ED/DMRG 基准；
+  \item \textbf{最后做机器学习}——ML 是收尾消化层，不是起点。
+\end{enumerate}
+
+\subsection{L=4 APBC 极化跳变的复现}
+
+与王远峰合作，复现 RIKEN 团队 2025 年的 DQAP 工作（arXiv:2504.07499）：以参数化绝热线路制备 SSH 模型的拓扑基态并测量 Resta 极化，在反周期边界条件下复现了跨拓扑相变的极化跳变（$L=4$ 时跳变发生在线路深度 $M^*=3$）。
+
+\subsection{极化对欠收敛与噪声的鲁棒性}
+
+极化作为量化序参量，\textbf{只读取拓扑扇区，不读取能量幅度}——因此即使在变分能量尚未完全收敛时，也能读出正确的拓扑扇区。这与 RIKEN 团队在 Quantinuum Reimei 上的硬件结果一致：该平台上能量显著偏离精确值，极化依然保持干净。
+
+\subsection{spinful 扩展与机器精度验证}
+
+将同一框架推进到含相互作用的 spinful SSH-Hubbard 模型：设计两自旋 qubit 映射与 Jordan-Wigner 编码（含周期边界条件下的 Z-string 相位因子），并在 $U=0$ 极限下验证费米子到量子比特映射的可靠性——谱与解析结果一致到机器精度。
+
+\subsection{对标硬件平台}
+
+论文在 Quantinuum H1-1（$L=18$，20 qubit）与 Reimei 上的硬件实验结果与我们的经典复现定性一致。硬件实现是计划中的下一步，目标平台包括 IBM Quantum、Quantinuum H1-1 与 Reimei。
+
+\section{能力边界与未来方向}
+
+\subsection{已澄清的边界}
+
+\begin{itemize}
+  \item \textbf{三种绝缘体的区分是定量而非定性}：拓扑绝缘体、平庸绝缘体与 Mott 绝缘体三者中，前两者可由 $\mathrm{gap}_4$ 明确二分类，但 $\mathrm{gap}_4$ 从 5.59 到 2.41 的连续变化不提供明确物理阈值来划定与 Mott 相的边界。
+  \item \textbf{纯 Mott 相在参数空间外}：$t_1,t_2\ge 0.05$ 的参数范围远离原子极限（$t_1=t_2=0$），进入 Mott 相需要 $t_1/t_2\to0$ 或 $U\gg t$。
+  \item \textbf{强 dimerization 区域的加密扫描}：在 $t_1\ll t_2$ 区域观察到拓扑相向平庸连续过渡的趋势，该区域是后续加密扫描的重点。
+\end{itemize}
+
+\subsection{$U$--$V$ 平面 DMRG 全扫描}
+
+在 SSH-Hubbard 模型中加入最近邻 Coulomb 排斥 $V\sum_i n_i n_{i+1}$ 后，系统的 V-test 表明 \textbf{DMRG 优于 ED}：ED 强制两个简并 CDW 基态等权叠加，$\delta n\sim 10^{-14}$ 是数学精确的伪迹；而 DMRG 的 MPS 表示在有限 bond dimension 优化中自发选择单一 CDW 分支，给出物理合理的序参量（$L=20, V=8$: $\delta n=-0.439$）。后续使用 DMRG 进行 $U$--$V$ 平面全扫描，ED 保留用于 $t_1/t_2$ 拓扑区的快速判断。详细数据对比见 \texttt{4picture/summary\_4picture.tex}。
+
+\subsection{计算规模与量子硬件路线}
+
+spinful Hubbard 在 $L\ge 8$ 时 Hilbert 空间维度达 $2^{32}$，超出精确对角化能力，需切换至 DMRG 或真实量子硬件。由于极化作为拓扑序参量对噪声特别鲁棒，当前 NISQ 硬件即可有效运行。下一步计划：申请 IBM Quantum / Quantinuum H1-1 / Reimei 资源，在真实硬件上实现 spinful SSH-Hubbard 的 DQAP 模拟。
+
+\section{研究兴趣}
+
+我希望在博士阶段把以数值与变分计算为主的训练，建立到图模型、消息传递、变分推断与张量网络等更有理论保证的数学工具上，具体方向包括：\textbf{分布式量子计算与张量网络方法}（DMRG 与变分方法是我已在使用的工具，从因子图上的分布式量子优化入手，把经验推进为有理论保证的算法）；\textbf{可证明的机器学习}（把物理相识别中积累的经验迁移为可验证的算法结果）。
+
+\end{document}

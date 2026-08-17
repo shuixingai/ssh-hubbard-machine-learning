@@ -1,0 +1,41 @@
+# ─────────────────────────────────────────────────────────────
+# SSH-Hubbard DQAP/QKM — git 忽略规则
+# 原则：只提交「源」（代码 / 文档 / 小数据），忽略一切可重新
+# 生成的产物（图像 / PDF / 编译垃圾 / 大二进制）。
+# ─────────────────────────────────────────────────────────────
+
+# Python 字节码 / 环境
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# 可重新生成的图像 / 压缩包
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.pdf
+*.zip
+
+# LaTeX 编译中间产物（源 *.tex 保留）
+*.aux
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+
+# DMRG 二进制结果（可重算，不提交）
+*.jld2
+
+# 大 npz：一次性 50MB 版本不进 git
+archive/4picture/ssh_dataset_L6_UVplane.npz
+4picture/ssh_dataset_L6_UVplane.npz
+
+# Julia 编译缓存（若有）
+*.ji
+*.ji.tmp
